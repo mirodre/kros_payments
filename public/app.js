@@ -24,7 +24,14 @@ function getToken() {
   return document.getElementById('token').value.trim();
 }
 
-/** Zadanú URL (aj Swagger) znormalizuje na base URL API (origin bez cesty). */
+function setApiBase(url) {
+  document.getElementById('api-base').value = url;
+  document.querySelectorAll('.env-btn').forEach(btn => {
+    btn.classList.toggle('env-btn-active', btn.dataset.url === url);
+  });
+}
+
+/** Vráti base URL API z hidden inputu. */
 function getApiBase() {
   const raw = document.getElementById('api-base').value.trim();
   if (!raw) return '';
@@ -119,10 +126,7 @@ function saveSettings() {
     const el = document.getElementById(id);
     if (el && el.value != null) o[id] = el.value;
   });
-  const settingsOpen = document.getElementById('panel-settings')?.classList.contains('expanded');
-  const filtersOpen = document.getElementById('panel-filters')?.classList.contains('expanded');
-  o._settingsOpen = settingsOpen;
-  o._filtersOpen = filtersOpen;
+
   try {
     localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(o));
   } catch (_) {}
@@ -141,12 +145,6 @@ function restoreSettings() {
       const sel = document.getElementById('account');
       if (sel && o.account !== '') sel.value = o.account;
     }
-    if (o._settingsOpen) document.getElementById('panel-settings')?.classList.add('expanded');
-    if (o._filtersOpen) document.getElementById('panel-filters')?.classList.add('expanded');
-    const sBtn = document.getElementById('toggle-settings');
-    const fBtn = document.getElementById('toggle-filters');
-    if (sBtn) sBtn.setAttribute('aria-expanded', !!o._settingsOpen);
-    if (fBtn) fBtn.setAttribute('aria-expanded', !!o._filtersOpen);
   } catch (_) {}
 }
 
@@ -170,7 +168,9 @@ function restoreSaved() {
     document.getElementById('remember-token').checked = true;
   }
   if (base) {
-    document.getElementById('api-base').value = base;
+    setApiBase(base);
+  } else {
+    setApiBase(document.getElementById('api-base').value);
   }
 }
 
@@ -675,6 +675,12 @@ async function submitPayments() {
 }
 
 function bindEvents() {
+  document.querySelectorAll('.env-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setApiBase(btn.dataset.url);
+    });
+  });
+
   document.getElementById('btn-connect').addEventListener('click', connect);
   document.getElementById('btn-logout').addEventListener('click', () => {
     state.token = '';
@@ -701,8 +707,7 @@ function bindEvents() {
   document.getElementById('btn-load-invoices').addEventListener('click', () => loadInvoices(0));
   document.getElementById('btn-load-from-file').addEventListener('click', () => document.getElementById('input-import-file').click());
   document.getElementById('input-import-file').addEventListener('change', handleImportFile);
-  document.getElementById('btn-select-all').addEventListener('click', selectAll);
-  document.getElementById('btn-select-none').addEventListener('click', selectNone);
+
   document.getElementById('btn-submit-payments').addEventListener('click', submitPayments);
 
   document.getElementById('check-all').addEventListener('change', function () {
@@ -725,22 +730,6 @@ function bindEvents() {
 
   document.getElementById('account')?.addEventListener('change', () => { updateSelectedCount(); saveSettings(); });
 
-  document.getElementById('toggle-settings')?.addEventListener('click', () => {
-    const panel = document.getElementById('panel-settings');
-    const btn = document.getElementById('toggle-settings');
-    if (!panel || !btn) return;
-    panel.classList.toggle('expanded');
-    btn.setAttribute('aria-expanded', panel.classList.contains('expanded'));
-    saveSettings();
-  });
-  document.getElementById('toggle-filters')?.addEventListener('click', () => {
-    const panel = document.getElementById('panel-filters');
-    const btn = document.getElementById('toggle-filters');
-    if (!panel || !btn) return;
-    panel.classList.toggle('expanded');
-    btn.setAttribute('aria-expanded', panel.classList.contains('expanded'));
-    saveSettings();
-  });
   document.getElementById('toggle-api-log')?.addEventListener('click', () => {
     const panel = document.getElementById('panel-api-log');
     const btn = document.getElementById('toggle-api-log');

@@ -14,10 +14,18 @@
       <p class="muted">Pripojenie ku KROS Fakturácii cez OpenAPI</p>
       <p class="muted small" style="margin-bottom: 0.75rem;">Aplikáciu vždy otvorte na <strong>http://localhost:3000</strong> (po spustení <code>npm start</code>).</p>
       <div class="form-group">
-        <label for="api-base">URL pripojenia KROS API (alebo stránka Swagger)</label>
-        <textarea id="api-base" rows="3" placeholder="https://esw-testlab-openapigateway-api.azurewebsites.net"
-          autocomplete="off">https://esw-testlab-openapigateway-api.azurewebsites.net/swagger/index.html</textarea>
-        <span class="muted small">Zadajte base URL API alebo odkaz na Swagger – použije sa len doména servera.</span>
+        <label>Prostredie KROS API</label>
+        <div class="env-picker">
+          <button type="button" class="env-btn" data-url="https://esw-testlab-openapigateway-api.azurewebsites.net" id="env-test">
+            <span class="env-btn-name">Test Open API</span>
+            <span class="env-btn-url">esw-testlab-openapigateway-api.azurewebsites.net</span>
+          </button>
+          <button type="button" class="env-btn" data-url="https://api-economy.kros.sk" id="env-prod">
+            <span class="env-btn-name">Production Open API</span>
+            <span class="env-btn-url">api-economy.kros.sk</span>
+          </button>
+        </div>
+        <input type="hidden" id="api-base" value="https://esw-testlab-openapigateway-api.azurewebsites.net">
       </div>
       <div class="form-group">
         <label for="token">API token (Bearer)</label>
@@ -45,34 +53,17 @@
         </div>
       </header>
 
-      <div id="panel-settings" class="panel panel-collapsible">
-        <button type="button" class="panel-toggle" id="toggle-settings" aria-expanded="false">
-          <span class="panel-toggle-icon">▶</span> Nastavenia
-        </button>
-        <div class="panel-collapsible-content">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="account">Bankový účet pre úhrady</label>
-              <select id="account">
-                <option value="">— načítavam —</option>
-              </select>
-            </div>
-          </div>
+      <div class="panel panel-settings-filters">
+        <div class="settings-filters-item">
+          <label for="account" class="sf-label">Bankový účet</label>
+          <select id="account">
+            <option value="">— načítavam —</option>
+          </select>
         </div>
-      </div>
-
-      <div id="panel-filters" class="panel panel-collapsible">
-        <button type="button" class="panel-toggle" id="toggle-filters" aria-expanded="false">
-          <span class="panel-toggle-icon">▶</span> Filtre
-        </button>
-        <div class="panel-collapsible-content">
-          <div class="form-row flex-wrap">
-            <div class="form-group">
-              <label for="filter-sequence">Číselný rad</label>
-              <input type="text" id="filter-sequence" placeholder="napr. OF">
-            </div>
-          </div>
-          <p class="muted small">Filter sa aplikuje server-side pri načítaní.</p>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label for="filter-sequence" class="sf-label">Číselný rad</label>
+          <input type="text" id="filter-sequence" placeholder="napr. OF">
         </div>
       </div>
 
@@ -84,8 +75,7 @@
             <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať neuhradené faktúry</button>
             <button type="button" id="btn-load-from-file" class="btn btn-secondary btn-sm">Načítať zo súboru</button>
             <input type="file" id="input-import-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-            <button type="button" id="btn-select-all" class="btn btn-secondary btn-sm">Označiť všetky</button>
-            <button type="button" id="btn-select-none" class="btn btn-secondary btn-sm">Odznačiť všetky</button>
+
             <span id="selected-count" class="muted"></span>
           </div>
         </div>

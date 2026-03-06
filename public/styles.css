@@ -56,6 +56,51 @@ h2 {
   margin-bottom: 1.25rem;
 }
 
+/* Nastavenia + Filtre – kompaktný riadok vedľa seba */
+.panel-settings-filters {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.55rem 1.25rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.settings-filters-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+.settings-filters-item select,
+.settings-filters-item input[type="text"] {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  min-width: 0;
+}
+
+.sf-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin: 0;
+}
+
+.sf-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 1.25rem;
+}
+
 /* Zbaliteľné panely (Nastavenia, Filtre) */
 .panel-collapsible {
   padding: 0;
@@ -149,6 +194,51 @@ h2 {
 
 #login-section .btn {
   margin-top: 0.5rem;
+}
+
+/* Výber prostredia (Test / Production) */
+.env-picker {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.env-btn {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.65rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.env-btn:hover {
+  border-color: var(--primary);
+  background: #f0f4ff;
+}
+
+.env-btn-active {
+  border-color: var(--primary);
+  background: #eef2ff;
+}
+
+.env-btn-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.env-btn-url {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
 }
 
 /* Form */
