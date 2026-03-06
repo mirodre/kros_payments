@@ -1,0 +1,578 @@
+/* Platforma úhrady – základné štýly */
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #fff;
+  --border: #e0e2e6;
+  --text: #1a1d21;
+  --text-muted: #6b7280;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary: #64748b;
+  --success: #059669;
+  --error: #dc2626;
+  --warning: #d97706;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Zbaliteľné panely (Nastavenia, Filtre) */
+.panel-collapsible {
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  margin: 0;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+
+.panel-toggle:hover {
+  background: #e8eaee;
+}
+
+.panel-toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.panel-collapsible.expanded .panel-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.panel-collapsible-content {
+  display: none;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.panel-collapsible.expanded .panel-collapsible-content {
+  display: block;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+/* Login – na šírku obrazovky */
+#login-section {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+#login-section .form-group {
+  margin-bottom: 1rem;
+}
+
+#login-section .form-group label {
+  font-size: 1rem;
+}
+
+#login-section #api-base,
+#login-section #token {
+  width: 100%;
+  min-height: 4.5em;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+#login-section #api-base {
+  min-height: 4em;
+}
+
+#login-section #token {
+  min-height: 6em;
+}
+
+#login-section .btn {
+  margin-top: 0.5rem;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 0.75rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="url"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 2.5em;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-row.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 140px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+}
+
+.checkbox-group input {
+  width: auto;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: #fff;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #475569;
+}
+
+.btn-success {
+  background: #0d9668;
+  color: #fff;
+}
+
+.btn-success:disabled {
+  opacity: 1;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Main header */
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.main-header h1 {
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Table */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.table-header h2 {
+  margin: 0;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: #f8fafc;
+}
+
+tbody tr.selected {
+  background: #eff6ff;
+}
+
+td input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabuľka faktúr – kompaktný dvojriadkový vzhľad, menšie písmo */
+.invoices-table {
+  table-layout: fixed;
+  font-size: 0.8rem;
+}
+
+.invoices-table th,
+.invoices-table td {
+  padding: 0.35rem 0.5rem;
+  vertical-align: top;
+  font-size: inherit;
+}
+
+.invoices-table th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.invoices-table .col-check {
+  width: 2.25rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.invoices-table .col-doc {
+  min-width: 0;
+  width: 11rem;
+  max-width: 11rem;
+}
+
+.invoices-table .col-dates {
+  width: 10.5rem;
+}
+
+.invoices-table .col-sum {
+  width: 7rem;
+  text-align: right;
+}
+
+.invoices-table .col-sum .cell-sum-doc {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.invoices-table .col-sum .cell-l2 {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.invoices-table .col-vs {
+  width: 4.5rem;
+}
+
+.invoices-table .col-action {
+  width: 5.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.invoices-table .cell-l1,
+.invoices-table .cell-l2 {
+  display: block;
+  line-height: 1.35;
+}
+
+.invoices-table .cell-l1 {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.invoices-table .cell-l2 {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+.invoices-table .col-doc .cell-l2 {
+  margin-top: 0.05rem;
+}
+
+.invoices-table .col-dates .cell-l2::before {
+  content: 'Splatn.: ';
+  color: var(--text-muted);
+}
+
+.invoices-table .cell-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+.invoices-table .btn-pay-one {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.invoices-table tr.row-paid {
+  background: rgba(13, 150, 104, 0.08);
+}
+.invoices-table tr.row-paid td {
+  color: var(--text-muted);
+}
+
+/* Na úzkych obrazovkách ešte kompaktnejšie */
+@media (max-width: 768px) {
+  .invoices-table {
+    font-size: 0.75rem;
+  }
+  .invoices-table th,
+  .invoices-table td {
+    padding: 0.3rem 0.35rem;
+  }
+  .invoices-table .col-dates {
+    width: 8.5rem;
+  }
+  .invoices-table .col-sum {
+    width: 5.5rem;
+  }
+  .invoices-table .col-vs {
+    width: 3.5rem;
+  }
+  .invoices-table .col-action {
+    width: 4.5rem;
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.badge-overdue {
+  background: #fef2f2;
+  color: var(--error);
+}
+
+.badge-ok {
+  background: #f0fdf4;
+  color: var(--success);
+}
+
+.loading, .empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.error-box, .result-box {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.error-box {
+  background: #fef2f2;
+  color: var(--error);
+}
+
+.result-box.success {
+  background: #f0fdf4;
+  color: var(--success);
+}
+
+.result-box.error {
+  background: #fef2f2;
+  color: var(--error);
+}
+
+.result-box.warning {
+  background: #fffbeb;
+  color: var(--warning);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Log API volaní */
+.api-log-actions {
+  margin-bottom: 0.5rem;
+}
+
+.api-log {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  max-height: 20rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text);
+}

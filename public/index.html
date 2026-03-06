@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Platforma úhrady – KROS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Prihlásenie -->
+    <section id="login-section" class="panel">
+      <h1>Platforma úhrady</h1>
+      <p class="muted">Pripojenie ku KROS Fakturácii cez OpenAPI</p>
+      <p class="muted small" style="margin-bottom: 0.75rem;">Aplikáciu vždy otvorte na <strong>http://localhost:3000</strong> (po spustení <code>npm start</code>).</p>
+      <div class="form-group">
+        <label for="api-base">URL pripojenia KROS API (alebo stránka Swagger)</label>
+        <textarea id="api-base" rows="3" placeholder="https://esw-testlab-openapigateway-api.azurewebsites.net"
+          autocomplete="off">https://esw-testlab-openapigateway-api.azurewebsites.net/swagger/index.html</textarea>
+        <span class="muted small">Zadajte base URL API alebo odkaz na Swagger – použije sa len doména servera.</span>
+      </div>
+      <div class="form-group">
+        <label for="token">API token (Bearer)</label>
+        <textarea id="token" rows="4" placeholder="Vložte token z nastavení v fakturacia.kros.sk" autocomplete="off"></textarea>
+        <span class="muted small">Token je viditeľný – nepoužívajte na zdieľaných počítačoch.</span>
+      </div>
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="remember-token" checked>
+          Zapamätať token v prehliadači
+        </label>
+      </div>
+      <button type="button" id="btn-connect" class="btn btn-primary">Pripojiť</button>
+      <div id="login-error" class="error-box" hidden></div>
+    </section>
+
+    <!-- Hlavná časť po prihlásení -->
+    <section id="main-section" class="hidden">
+      <header class="main-header">
+        <h1>Neuhradené faktúry</h1>
+        <div class="header-actions">
+          <span id="api-base-label" class="muted"></span>
+          <button type="button" id="btn-restart" class="btn btn-secondary" title="Reštartuje Node server (iba pri behu na localhoste)">Reštartovať službu</button>
+          <button type="button" id="btn-logout" class="btn btn-secondary">Odhlásiť sa</button>
+        </div>
+      </header>
+
+      <div id="panel-settings" class="panel panel-collapsible">
+        <button type="button" class="panel-toggle" id="toggle-settings" aria-expanded="false">
+          <span class="panel-toggle-icon">▶</span> Nastavenia
+        </button>
+        <div class="panel-collapsible-content">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="account">Bankový účet pre úhrady</label>
+              <select id="account">
+                <option value="">— načítavam —</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-filters" class="panel panel-collapsible">
+        <button type="button" class="panel-toggle" id="toggle-filters" aria-expanded="false">
+          <span class="panel-toggle-icon">▶</span> Filtre
+        </button>
+        <div class="panel-collapsible-content">
+          <div class="form-row flex-wrap">
+            <div class="form-group">
+              <label for="filter-sequence">Číselný rad</label>
+              <input type="text" id="filter-sequence" placeholder="napr. OF">
+            </div>
+          </div>
+          <p class="muted small">Filter sa aplikuje server-side pri načítaní.</p>
+        </div>
+      </div>
+
+      <!-- Tabuľka faktúr -->
+      <div class="panel">
+        <div class="table-header">
+          <h2>Zoznam faktúr</h2>
+          <div class="table-actions">
+            <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať neuhradené faktúry</button>
+            <button type="button" id="btn-load-from-file" class="btn btn-secondary btn-sm">Načítať zo súboru</button>
+            <input type="file" id="input-import-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+            <button type="button" id="btn-select-all" class="btn btn-secondary btn-sm">Označiť všetky</button>
+            <button type="button" id="btn-select-none" class="btn btn-secondary btn-sm">Odznačiť všetky</button>
+            <span id="selected-count" class="muted"></span>
+          </div>
+        </div>
+        <div id="invoices-loading" class="loading" hidden>Načítavam faktúry…</div>
+        <div id="invoices-empty" class="empty-state" hidden>Načítajte faktúry alebo nemáte žiadne neuhradené.</div>
+        <div id="invoices-table-wrap" class="table-wrap" hidden>
+          <table id="invoices-table" class="invoices-table">
+            <thead>
+              <tr>
+                <th class="col-check"><input type="checkbox" id="check-all" title="Označiť všetky"></th>
+                <th class="col-doc">Doklad</th>
+                <th class="col-dates">Dátumy</th>
+                <th class="col-sum">Suma</th>
+                <th class="col-vs">VS</th>
+                <th class="col-action"></th>
+              </tr>
+            </thead>
+            <tbody id="invoices-tbody"></tbody>
+          </table>
+        </div>
+        <div id="pagination" class="pagination" hidden></div>
+      </div>
+
+      <!-- Uhradiť vybrané -->
+      <div class="panel">
+        <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané faktúry</button>
+        <div id="submit-result" class="result-box" hidden></div>
+      </div>
+
+      <!-- Log API volaní -->
+      <div id="panel-api-log" class="panel panel-collapsible">
+        <button type="button" class="panel-toggle" id="toggle-api-log" aria-expanded="false">
+          <span class="panel-toggle-icon">▶</span> Log API volaní
+        </button>
+        <div class="panel-collapsible-content">
+          <div class="api-log-actions">
+            <button type="button" id="btn-clear-api-log" class="btn btn-secondary btn-sm">Vymazať log</button>
+          </div>
+          <pre id="api-log" class="api-log"></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
