@@ -94,6 +94,15 @@ h2 {
   margin: 0;
 }
 
+.sf-section-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .sf-divider {
   width: 1px;
   align-self: stretch;
@@ -383,6 +392,13 @@ h2 {
   margin: 0;
 }
 
+.table-count-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
 .table-actions {
   display: flex;
   align-items: center;
@@ -665,4 +681,235 @@ td input[type="checkbox"] {
   white-space: pre-wrap;
   word-break: break-all;
   color: var(--text);
+}
+
+/* Toggle group (filter tlačidlá) */
+.toggle-group {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.toggle-btn:last-child {
+  border-right: none;
+}
+
+.toggle-btn:hover:not(.toggle-btn-active) {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.toggle-btn-active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ============================================================
+   Výber modulu
+   ============================================================ */
+#module-picker {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 3rem;
+  min-height: 60vh;
+}
+
+.module-picker-wrap {
+  width: 100%;
+  max-width: 700px;
+  text-align: center;
+}
+
+.module-picker-wrap h1 {
+  margin-bottom: 0.25rem;
+}
+
+.module-picker-wrap .muted {
+  margin-bottom: 2rem;
+  display: block;
+}
+
+.module-picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 520px) {
+  .module-picker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn-module {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow);
+}
+
+.btn-module:hover {
+  border-color: var(--primary);
+  background: #f0f4ff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.btn-module-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.btn-module-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.btn-module-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.module-picker-footer {
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================================
+   Prevod medzi účtami – tabuľka
+   ============================================================ */
+.transfer-filters-panel {
+  flex-wrap: wrap;
+}
+
+/* Stĺpce transfer tabuľky */
+.transfer-table .tr-col-date {
+  width: 5.5rem;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.transfer-table .tr-col-partner {
+  width: 15.5rem;
+  min-width: 0;
+  vertical-align: top;
+}
+
+.transfer-table .tr-col-vs {
+  width: 10.5rem;
+  vertical-align: top;
+}
+
+.transfer-table .tr-col-sum {
+  width: 7rem;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.transfer-table .tr-col-transferred {
+  width: 2.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.transfer-table .col-action {
+  width: 5.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Partner a správa v bunke */
+.tr-partner-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tr-note {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 28rem;
+  margin-top: 0.1rem;
+}
+
+/* Farby sumy */
+.sum-positive {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.sum-negative {
+  color: var(--error);
+  font-weight: 600;
+}
+
+/* Ikony prevedené / neprevedené */
+.icon-transferred {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: var(--success);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.icon-not-transferred {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--bg);
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+}
+
+.transfer-table tr.row-transferred td {
+  color: var(--text-muted);
+}
+
+.transfer-table tr.row-transferred {
+  background: rgba(5, 150, 105, 0.04);
+}
+
+.transfer-table tr.row-transferred .tr-partner-name {
+  color: var(--text-muted);
+  font-weight: 500;
 }

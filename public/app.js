@@ -5,6 +5,7 @@
 const STORAGE_TOKEN = 'platforma_uhrady_token';
 const STORAGE_BASE = 'platforma_uhrady_api_base';
 const STORAGE_SETTINGS = 'platforma_uhrady_settings';
+const STORAGE_TRANSFER = 'platforma_uhrady_transfer';
 
 let state = {
   token: '',
@@ -12,6 +13,15 @@ let state = {
   accounts: [],
   invoices: [],
   selectedIds: new Set(),
+};
+
+let transferState = {
+  payments: [],
+  filteredPayments: [],
+  transferredIds: new Set(),
+  selectedIds: new Set(),
+  currentSkip: 0,
+  hasMore: false,
 };
 
 /** Hodnoty hlavičiek HTTP musia byť ISO-8859-1; odstráni znaky mimo tejto sady. */
@@ -53,26 +63,30 @@ function getAuthHeaders() {
   };
 }
 
-function appendApiLog(entry) {
-  const el = document.getElementById('api-log');
+function appendApiLog(entry, logId = 'api-log') {
+  const el = document.getElementById(logId);
   if (!el) return;
   const line = '[' + new Date().toLocaleTimeString('sk-SK') + '] ' + entry;
   el.textContent = (el.textContent ? el.textContent + '\n' : '') + line;
   el.scrollTop = el.scrollHeight;
 }
 
-async function apiCall(path, options = {}) {
+function appendTransferApiLog(entry) {
+  appendApiLog(entry, 'transfer-api-log');
+}
+
+async function apiCall(path, options = {}, logId = 'api-log') {
   const pathPart = path.startsWith('/') ? path : '/api/' + path.replace(/^\//, '');
   const method = (options.method || 'GET').toUpperCase();
   const bodySerialized = options.body && typeof options.body === 'object' && !(options.body instanceof FormData)
     ? JSON.stringify(options.body)
     : options.body;
-  appendApiLog(method + ' ' + pathPart);
+  appendApiLog(method + ' ' + pathPart, logId);
   if (bodySerialized != null && bodySerialized !== '') {
     const bodyPreview = typeof bodySerialized === 'string' && bodySerialized.length > 2000
       ? bodySerialized.slice(0, 2000) + '…'
       : bodySerialized;
-    appendApiLog('  Body: ' + bodyPreview);
+    appendApiLog('  Body: ' + bodyPreview, logId);
   }
   const headers = { ...getAuthHeaders(), ...(options.headers || {}) };
   if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
@@ -88,10 +102,10 @@ async function apiCall(path, options = {}) {
   try {
     data = text ? JSON.parse(text) : null;
   } catch (_) {}
-  appendApiLog('  → ' + res.status + (res.statusText ? ' ' + res.statusText : ''));
+  appendApiLog('  → ' + res.status + (res.statusText ? ' ' + res.statusText : ''), logId);
   if (!res.ok && text) {
     const errPreview = text.length > 500 ? text.slice(0, 500) + '…' : text;
-    appendApiLog('  Odpoveď: ' + errPreview.replace(/\n/g, ' '));
+    appendApiLog('  Odpoveď: ' + errPreview.replace(/\n/g, ' '), logId);
   }
   if (!res.ok) {
     const err = new Error(data?.error || data?.detail || data?.title || `HTTP ${res.status}`);
@@ -103,21 +117,43 @@ async function apiCall(path, options = {}) {
   return data;
 }
 
+function apiCallTransfer(path, options = {}) {
+  return apiCall(path, options, 'transfer-api-log');
+}
+
+function hideAllSections() {
+  ['login-section', 'module-picker', 'main-section', 'transfer-section'].forEach(id => {
+    document.getElementById(id)?.classList.add('hidden');
+  });
+}
+
 function showLogin() {
+  hideAllSections();
   document.getElementById('login-section').classList.remove('hidden');
-  document.getElementById('main-section').classList.add('hidden');
   state.token = '';
   state.invoices = [];
   state.selectedIds.clear();
 }
 
-function showMain() {
-  document.getElementById('login-section').classList.add('hidden');
-  document.getElementById('main-section').classList.remove('hidden');
+function showModulePicker() {
+  hideAllSections();
+  document.getElementById('module-picker').classList.remove('hidden');
   document.getElementById('login-error').hidden = true;
+}
+
+function showMain() {
+  hideAllSections();
+  document.getElementById('main-section').classList.remove('hidden');
   document.getElementById('api-base-label').textContent = 'API: ' + (state.apiBase || getApiBase());
   loadAccounts();
   restoreSettings();
+}
+
+function showTransfer() {
+  hideAllSections();
+  document.getElementById('transfer-section').classList.remove('hidden');
+  document.getElementById('transfer-api-base-label').textContent = 'API: ' + (state.apiBase || getApiBase());
+  loadTransferAccounts();
 }
 
 function saveSettings() {
@@ -202,7 +238,7 @@ async function connect() {
     }
     await apiCall('/api/auth/check', { method: 'GET' });
     persistToken();
-    showMain();
+    showModulePicker();
   } catch (e) {
     if (e.status === 401) {
       showError('login-error', 'Neplatný token. Skontrolujte token v nastavení fakturacia.kros.sk.');
@@ -674,6 +710,397 @@ async function submitPayments() {
   }
 }
 
+/* ============================================================
+   PREVOD MEDZI ÚČTAMI
+   ============================================================ */
+
+function saveTransferSettings() {
+  try {
+    const o = {
+      src: document.getElementById('transfer-src-account')?.value || '',
+      dst: document.getElementById('transfer-dst-account')?.value || '',
+    };
+    localStorage.setItem(STORAGE_TRANSFER, JSON.stringify(o));
+  } catch (_) {}
+}
+
+/** Vytvorí deterministický kľúč pre platbu z dostupných polí (API nevracia vlastné ID). */
+function makePaymentKey(p) {
+  const date = (p.dateOfPayment || '').slice(0, 10);
+  const sum = p.sumOfPayment != null ? String(p.sumOfPayment) : '';
+  const vs = p.variableSymbol || '';
+  const ref = p.paymentReference || '';
+  return [date, sum, vs, ref].join('|');
+}
+
+async function loadTransferAccounts() {
+  const srcSel = document.getElementById('transfer-src-account');
+  const dstSel = document.getElementById('transfer-dst-account');
+  srcSel.innerHTML = '<option value="">— načítavam —</option>';
+  dstSel.innerHTML = '<option value="">— načítavam —</option>';
+  try {
+    const res = await apiCallTransfer('/api/payments/accounts', { method: 'GET' });
+    const list = res?.data || [];
+    state.accounts = list;
+    const opts = '<option value="">— vyberte účet —</option>' + list.map(a =>
+      `<option value="${a.id}">${escapeHtml(a.name || 'Účet')}${a.iban ? ' • ' + a.iban : ''} (${a.currency || 'EUR'})</option>`
+    ).join('');
+    srcSel.innerHTML = opts;
+    dstSel.innerHTML = opts;
+    // Obnov posledne zvolené účty
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_TRANSFER) || '{}');
+      if (saved.src) srcSel.value = saved.src;
+      if (saved.dst) dstSel.value = saved.dst;
+    } catch (_) {}
+  } catch (e) {
+    srcSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
+    dstSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
+    if (e.status === 401) showLogin();
+  }
+}
+
+async function fetchAllPayments(accountId) {
+  let all = [];
+  let skip = 0;
+  while (true) {
+    const params = new URLSearchParams({ accountId: String(accountId), Top: '100', Skip: String(skip) });
+    const url = '/api/payments?' + params.toString();
+    const res = await apiCallTransfer(url, { method: 'GET' });
+    appendTransferApiLog('  Odpoveď (skrátene): ' + JSON.stringify(res)?.slice(0, 300));
+    const batch = res?.data || res?.items || res?.payments || (Array.isArray(res) ? res : []);
+    all = all.concat(batch);
+    if (batch.length < 100) break;
+    skip += 100;
+  }
+  return all;
+}
+
+async function loadTransferPayments() {
+  const srcId = document.getElementById('transfer-src-account').value;
+  const dstId = document.getElementById('transfer-dst-account').value;
+  if (!srcId) {
+    showTransferResult('Vyberte zdrojový účet.', 'error');
+    return;
+  }
+  if (!dstId) {
+    showTransferResult('Vyberte cieľový účet.', 'error');
+    return;
+  }
+  if (srcId === dstId) {
+    showTransferResult('Zdrojový a cieľový účet musia byť rôzne.', 'error');
+    return;
+  }
+
+  document.getElementById('transfer-loading').hidden = false;
+  document.getElementById('transfer-table-wrap').hidden = true;
+  document.getElementById('transfer-empty').hidden = true;
+  document.getElementById('transfer-pagination').hidden = true;
+  document.getElementById('transfer-result').hidden = true;
+  transferState.payments = [];
+  transferState.filteredPayments = [];
+  transferState.transferredIds = new Set();
+  transferState.selectedIds = new Set();
+
+  try {
+    const [srcPayments, dstPayments] = await Promise.all([
+      fetchAllPayments(srcId),
+      fetchAllPayments(dstId),
+    ]);
+
+    dstPayments.forEach(p => {
+      if (p.externalId != null && p.externalId !== '') {
+        transferState.transferredIds.add(String(p.externalId));
+      }
+    });
+
+    // Priradíme každej zdrojovej platbe stabilný kľúč ak ho ešte nemá
+    srcPayments.forEach(p => {
+      if (!p._pid) p._pid = makePaymentKey(p);
+    });
+
+    transferState.payments = srcPayments;
+    applyTransferFilter();
+
+    document.getElementById('transfer-loading').hidden = true;
+    if (srcPayments.length === 0) {
+      document.getElementById('transfer-empty').hidden = false;
+      document.getElementById('transfer-empty').textContent = 'Na zdrojovom účte nie sú žiadne platby.';
+    } else {
+      document.getElementById('transfer-table-wrap').hidden = false;
+    }
+  } catch (e) {
+    document.getElementById('transfer-loading').hidden = true;
+    document.getElementById('transfer-empty').hidden = false;
+    document.getElementById('transfer-empty').textContent = 'Chyba: ' + (e.message || e.status);
+    if (e.status === 401) showLogin();
+  }
+}
+
+function applyTransferFilter() {
+  const filterText = (document.getElementById('transfer-partner-filter')?.value || '').trim().toLowerCase();
+  const statusFilter = document.querySelector('#transfer-status-filter .toggle-btn-active')?.dataset.value || 'all';
+
+  transferState.filteredPayments = transferState.payments.filter(p => {
+    if (filterText) {
+      const partner = (p.partnerName || '').toLowerCase();
+      if (!partner.includes(filterText)) return false;
+    }
+    if (statusFilter !== 'all') {
+      const pid = p._pid || makePaymentKey(p);
+      const isTransferred = transferState.transferredIds.has(pid);
+      if (statusFilter === 'transferred' && !isTransferred) return false;
+      if (statusFilter === 'notTransferred' && isTransferred) return false;
+    }
+    return true;
+  });
+  renderTransferPayments();
+}
+
+function renderTransferPayments() {
+  const tbody = document.getElementById('transfer-tbody');
+  const list = transferState.filteredPayments;
+  const total = transferState.payments.length;
+  const countEl = document.getElementById('transfer-count-label');
+  if (countEl) {
+    countEl.textContent = total > 0
+      ? (list.length < total ? `${list.length} z ${total}` : `${total}`)
+      : '';
+  }
+
+  if (list.length === 0) {
+    document.getElementById('transfer-table-wrap').hidden = true;
+    document.getElementById('transfer-empty').hidden = false;
+    document.getElementById('transfer-empty').textContent = 'Žiadne platby nevyhovujú filtru.';
+    updateTransferSelectedCount();
+    return;
+  }
+
+  document.getElementById('transfer-table-wrap').hidden = false;
+  document.getElementById('transfer-empty').hidden = true;
+
+  tbody.innerHTML = list.map(p => {
+    const pid = p._pid || makePaymentKey(p);
+    const isTransferred = transferState.transferredIds.has(pid);
+    const checked = transferState.selectedIds.has(pid);
+
+    const partnerName = p.partnerName || '—';
+    const note = p.remittanceInformation || '';
+    const dateStr = p.dateOfPayment ? new Date(p.dateOfPayment).toLocaleDateString('sk-SK') : '—';
+    const sumRaw = p.sumOfPayment != null ? Number(p.sumOfPayment) : null;
+    const sumFormatted = sumRaw != null ? sumRaw.toFixed(2) : '—';
+    const currency = p.currency || 'EUR';
+    const sumClass = sumRaw == null ? '' : (sumRaw >= 0 ? 'sum-positive' : 'sum-negative');
+    const vsText = p.variableSymbol && p.variableSymbol !== '' ? p.variableSymbol
+      : (p.paymentReference && p.paymentReference !== '' ? p.paymentReference : '—');
+
+    const transferredIcon = isTransferred
+      ? `<span class="icon-transferred" title="Prevedené na cieľový účet">&#10003;</span>`
+      : `<span class="icon-not-transferred" title="Ešte neprevedené">&#8212;</span>`;
+    const rowClass = isTransferred ? 'row-transferred' : (checked ? 'selected' : '');
+
+    return `
+      <tr class="${rowClass}" data-id="${escapeHtml(pid)}">
+        <td class="col-check"><input type="checkbox" class="transfer-check" data-id="${escapeHtml(pid)}" ${checked ? 'checked' : ''} ${isTransferred ? 'disabled' : ''}></td>
+        <td class="tr-col-date">
+          <span class="cell-l1">${escapeHtml(dateStr)}</span>
+        </td>
+        <td class="tr-col-partner" title="${escapeHtml(partnerName)}">
+          <span class="cell-l1 tr-partner-name">${escapeHtml(partnerName)}</span>
+          ${note ? `<span class="cell-l2 cell-truncate tr-note">${escapeHtml(note)}</span>` : ''}
+        </td>
+        <td class="tr-col-vs">
+          <span class="cell-l2">${escapeHtml(vsText)}</span>
+        </td>
+        <td class="tr-col-sum number">
+          <span class="cell-l1 ${sumClass}">${escapeHtml(sumFormatted)} ${escapeHtml(currency)}</span>
+        </td>
+        <td class="tr-col-transferred">${transferredIcon}</td>
+        <td class="col-action"><button type="button" class="btn btn-primary btn-sm btn-transfer-one" data-id="${escapeHtml(pid)}" ${isTransferred ? 'disabled title="Už prevedené"' : ''}>Previesť</button></td>
+      </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.btn-transfer-one').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const pid = btn.dataset.id;
+      const payment = transferState.payments.find(p => (p._pid || makePaymentKey(p)) === pid);
+      if (payment) transferSinglePayment(payment);
+    });
+  });
+
+  tbody.querySelectorAll('.transfer-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const pid = cb.dataset.id;
+      if (cb.checked) transferState.selectedIds.add(pid);
+      else transferState.selectedIds.delete(pid);
+      const tr = cb.closest('tr');
+      if (tr) {
+        if (cb.checked) tr.classList.add('selected');
+        else tr.classList.remove('selected');
+      }
+      updateTransferSelectedCount();
+    });
+  });
+
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('click', ev => {
+      if (ev.target.tagName === 'INPUT' || ev.target.closest('button')) return;
+      const pid = tr.dataset.id;
+      const cb = tr.querySelector('.transfer-check');
+      if (!cb || cb.disabled) return;
+      cb.checked = !cb.checked;
+      if (cb.checked) transferState.selectedIds.add(pid);
+      else transferState.selectedIds.delete(pid);
+      if (cb.checked) tr.classList.add('selected');
+      else tr.classList.remove('selected');
+      updateTransferSelectedCount();
+    });
+  });
+
+  const checkAll = document.getElementById('transfer-check-all');
+  const selectable = list.filter(p => !transferState.transferredIds.has(p._pid || makePaymentKey(p)));
+  checkAll.checked = selectable.length > 0 && selectable.every(p => transferState.selectedIds.has(p._pid || makePaymentKey(p)));
+  checkAll.indeterminate = transferState.selectedIds.size > 0 && !checkAll.checked;
+  updateTransferSelectedCount();
+}
+
+function updateTransferSelectedCount() {
+  const n = transferState.selectedIds.size;
+  document.getElementById('transfer-selected-count').textContent = n ? `Vybraných: ${n}` : '';
+  document.getElementById('btn-transfer-selected').disabled = n === 0 || !document.getElementById('transfer-dst-account').value;
+}
+
+function showTransferResult(msg, type = 'success') {
+  const el = document.getElementById('transfer-result');
+  if (!el) return;
+  el.innerHTML = msg;
+  el.hidden = false;
+  el.className = 'result-box ' + type;
+}
+
+async function transferSinglePayment(payment) {
+  const dstId = document.getElementById('transfer-dst-account').value;
+  if (!dstId) {
+    showTransferResult('Vyberte cieľový účet.', 'error');
+    return;
+  }
+  const pid = payment._pid || makePaymentKey(payment);
+  if (transferState.transferredIds.has(pid)) {
+    showTransferResult('Platba už bola prevedená na cieľový účet.', 'warning');
+    return;
+  }
+
+  const btn = document.querySelector(`.btn-transfer-one[data-id="${CSS.escape(pid)}"]`);
+  const originalText = btn?.textContent ?? 'Previesť';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Spracováva sa…';
+  }
+  document.getElementById('transfer-result').hidden = true;
+
+  const paymentItem = {
+    dateOfPayment: payment.dateOfPayment,
+    sumOfPayment: -(Number(payment.sumOfPayment) || 0),
+    originalSumOfPayment: -(Number(payment.originalSumOfPayment || payment.sumOfPayment) || 0),
+    originalCurrency: payment.currency || payment.originalCurrency || 'EUR',
+    variableSymbol: payment.variableSymbol || '',
+    partnerName: (payment.partnerName || '').slice(0, 255) || undefined,
+    accountId: Number(dstId),
+    externalId: pid,
+    note: 'Prevod medzi vlastnými účtami',
+  };
+  if (payment.paymentReference) paymentItem.paymentReference = payment.paymentReference;
+
+  try {
+    const res = await apiCallTransfer('/api/payments/batch', { method: 'POST', body: { data: [paymentItem] } });
+    const requestId = res?.requestId || '';
+    transferState.transferredIds.add(pid);
+    transferState.selectedIds.delete(pid);
+    renderTransferPayments();
+    showTransferResult(`Prevod prebehol (202). RequestId: ${requestId}.`, 'success');
+  } catch (e) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+    if (e.status === 401) showLogin();
+    else if (e.status === 408) showTransferResult('Vypršal časový limit (408). Skúste znova.', 'warning');
+    else if (e.status === 409) showTransferResult('Duplicitná požiadavka (409). Počkajte cca 120 s a skúste znova.', 'warning');
+    else if (e.status === 429) showTransferResult(`Príliš veľa požiadaviek (429). Počkajte ${e.retryAfter || 60} s.`, 'warning');
+    else if (e.status === 400 && e.data?.errors) {
+      const list = e.data.errors.map(x => `${x.propertyPath || '?'}: ${x.errorMessage || ''}`).join('<br>');
+      showTransferResult('Chyby:<br>' + list, 'error');
+    } else {
+      showTransferResult('Chyba: ' + (e.message || e.status), 'error');
+    }
+  }
+}
+
+async function transferSelectedPayments() {
+  const dstId = document.getElementById('transfer-dst-account').value;
+  if (!dstId) {
+    showTransferResult('Vyberte cieľový účet.', 'error');
+    return;
+  }
+  const toTransfer = transferState.filteredPayments.filter(p => {
+    const pid = p._pid || makePaymentKey(p);
+    return transferState.selectedIds.has(pid) && !transferState.transferredIds.has(pid);
+  });
+  if (toTransfer.length === 0) {
+    showTransferResult('Nevybrali ste žiadnu platbu na prevod.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-transfer-selected');
+  btn.disabled = true;
+  document.getElementById('transfer-result').hidden = true;
+
+  let successCount = 0;
+  let errorCount = 0;
+  const errors = [];
+
+  for (const payment of toTransfer) {
+    const pid = payment._pid || makePaymentKey(payment);
+    if (transferState.transferredIds.has(pid)) { successCount++; continue; }
+
+    const paymentItem = {
+      dateOfPayment: payment.dateOfPayment,
+      sumOfPayment: -(Number(payment.sumOfPayment) || 0),
+      originalSumOfPayment: -(Number(payment.originalSumOfPayment || payment.sumOfPayment) || 0),
+      originalCurrency: payment.currency || payment.originalCurrency || 'EUR',
+      variableSymbol: payment.variableSymbol || '',
+      partnerName: (payment.partnerName || '').slice(0, 255) || undefined,
+      accountId: Number(dstId),
+      externalId: pid,
+      note: 'Prevod medzi vlastnými účtami',
+    };
+    if (payment.paymentReference) paymentItem.paymentReference = payment.paymentReference;
+
+    try {
+      await apiCallTransfer('/api/payments/batch', { method: 'POST', body: { data: [paymentItem] } });
+      transferState.transferredIds.add(pid);
+      transferState.selectedIds.delete(pid);
+      successCount++;
+    } catch (e) {
+      errorCount++;
+      errors.push(`Platba ${pid}: ${e.message || e.status}`);
+      if (e.status === 401) { showLogin(); return; }
+    }
+  }
+
+  renderTransferPayments();
+  if (errorCount === 0) {
+    showTransferResult(`Úspešne prevedených ${successCount} platíeb.`, 'success');
+  } else {
+    showTransferResult(
+      `Prevedených ${successCount}, neúspešných ${errorCount}.<br>` + errors.map(escapeHtml).join('<br>'),
+      errorCount === toTransfer.length ? 'error' : 'warning'
+    );
+  }
+  btn.disabled = transferState.selectedIds.size === 0;
+}
+
 function bindEvents() {
   document.querySelectorAll('.env-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -739,6 +1166,67 @@ function bindEvents() {
   });
   document.getElementById('btn-clear-api-log')?.addEventListener('click', () => {
     const el = document.getElementById('api-log');
+    if (el) el.textContent = '';
+  });
+
+  // Module picker
+  document.getElementById('btn-module-invoices')?.addEventListener('click', showMain);
+  document.getElementById('btn-module-transfer')?.addEventListener('click', showTransfer);
+  document.getElementById('btn-module-logout')?.addEventListener('click', () => {
+    state.token = '';
+    localStorage.removeItem(STORAGE_TOKEN);
+    showLogin();
+  });
+
+  // Back buttons
+  document.getElementById('btn-back-invoices')?.addEventListener('click', showModulePicker);
+  document.getElementById('btn-back-transfer')?.addEventListener('click', showModulePicker);
+
+  // Transfer logout
+  document.getElementById('btn-transfer-logout')?.addEventListener('click', () => {
+    state.token = '';
+    localStorage.removeItem(STORAGE_TOKEN);
+    showLogin();
+  });
+
+  // Transfer module actions
+  document.getElementById('btn-load-transfer')?.addEventListener('click', loadTransferPayments);
+  document.getElementById('btn-transfer-selected')?.addEventListener('click', transferSelectedPayments);
+
+  document.getElementById('transfer-check-all')?.addEventListener('change', function () {
+    const selectable = transferState.filteredPayments.filter(p => !transferState.transferredIds.has(p._pid || makePaymentKey(p)));
+    if (this.checked) {
+      selectable.forEach(p => transferState.selectedIds.add(p._pid || makePaymentKey(p)));
+    } else {
+      selectable.forEach(p => transferState.selectedIds.delete(p._pid || makePaymentKey(p)));
+    }
+    renderTransferPayments();
+  });
+
+  document.getElementById('transfer-partner-filter')?.addEventListener('input', applyTransferFilter);
+  document.getElementById('transfer-status-filter')?.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#transfer-status-filter .toggle-btn').forEach(b => b.classList.remove('toggle-btn-active'));
+      btn.classList.add('toggle-btn-active');
+      applyTransferFilter();
+    });
+  });
+
+  document.getElementById('transfer-src-account')?.addEventListener('change', saveTransferSettings);
+  document.getElementById('transfer-dst-account')?.addEventListener('change', () => {
+    updateTransferSelectedCount();
+    saveTransferSettings();
+  });
+
+  document.getElementById('toggle-transfer-api-log')?.addEventListener('click', () => {
+    const panel = document.getElementById('panel-transfer-api-log');
+    const btn = document.getElementById('toggle-transfer-api-log');
+    if (!panel || !btn) return;
+    panel.classList.toggle('expanded');
+    btn.setAttribute('aria-expanded', panel.classList.contains('expanded'));
+  });
+  document.getElementById('btn-clear-transfer-api-log')?.addEventListener('click', () => {
+    const el = document.getElementById('transfer-api-log');
     if (el) el.textContent = '';
   });
 }

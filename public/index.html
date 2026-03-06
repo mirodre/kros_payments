@@ -42,10 +42,36 @@
       <div id="login-error" class="error-box" hidden></div>
     </section>
 
+    <!-- Výber modulu po prihlásení -->
+    <section id="module-picker" class="hidden">
+      <div class="module-picker-wrap">
+        <h1>Vyberte modul</h1>
+        <p class="muted">Čo chcete urobiť?</p>
+        <div class="module-picker-grid">
+          <button type="button" id="btn-module-invoices" class="btn-module">
+            <span class="btn-module-icon">🧾</span>
+            <span class="btn-module-title">Úhrada faktúr</span>
+            <span class="btn-module-desc">Hromadné uhrádzanie neuhradených faktúr z KROS Fakturácie</span>
+          </button>
+          <button type="button" id="btn-module-transfer" class="btn-module">
+            <span class="btn-module-icon">🔄</span>
+            <span class="btn-module-title">Prevod medzi účtami</span>
+            <span class="btn-module-desc">Prevedie platby zo zdrojového účtu na cieľový účet s opačným znamienkom</span>
+          </button>
+        </div>
+        <div class="module-picker-footer">
+          <button type="button" id="btn-module-logout" class="btn btn-secondary btn-sm">Odhlásiť sa</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Hlavná časť po prihlásení -->
     <section id="main-section" class="hidden">
       <header class="main-header">
-        <h1>Neuhradené faktúry</h1>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <button type="button" id="btn-back-invoices" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
+          <h1>Neuhradené faktúry</h1>
+        </div>
         <div class="header-actions">
           <span id="api-base-label" class="muted"></span>
           <button type="button" id="btn-restart" class="btn btn-secondary" title="Reštartuje Node server (iba pri behu na localhoste)">Reštartovať službu</button>
@@ -115,6 +141,106 @@
             <button type="button" id="btn-clear-api-log" class="btn btn-secondary btn-sm">Vymazať log</button>
           </div>
           <pre id="api-log" class="api-log"></pre>
+        </div>
+      </div>
+    </section>
+    <!-- Prevod medzi účtami -->
+    <section id="transfer-section" class="hidden">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <button type="button" id="btn-back-transfer" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
+          <h1>Prevod medzi účtami</h1>
+        </div>
+        <div class="header-actions">
+          <span id="transfer-api-base-label" class="muted"></span>
+          <button type="button" id="btn-transfer-logout" class="btn btn-secondary">Odhlásiť sa</button>
+        </div>
+      </header>
+
+      <!-- Účty -->
+      <div class="panel panel-settings-filters">
+        <span class="sf-section-label">Prevod medzi účtami</span>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label for="transfer-src-account" class="sf-label">Zdrojový účet</label>
+          <select id="transfer-src-account">
+            <option value="">— načítavam —</option>
+          </select>
+        </div>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label for="transfer-dst-account" class="sf-label">Cieľový účet</label>
+          <select id="transfer-dst-account">
+            <option value="">— načítavam —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filtre -->
+      <div class="panel panel-settings-filters">
+        <span class="sf-section-label">Filter</span>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label for="transfer-partner-filter" class="sf-label">Filter partnera</label>
+          <input type="text" id="transfer-partner-filter" placeholder="Substring názvu partnera…">
+        </div>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label class="sf-label">Stav prevodu</label>
+          <div class="toggle-group" id="transfer-status-filter">
+            <button type="button" class="toggle-btn toggle-btn-active" data-value="all">Všetky</button>
+            <button type="button" class="toggle-btn" data-value="notTransferred">Neprevedené</button>
+            <button type="button" class="toggle-btn" data-value="transferred">Prevedené</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabuľka platieb -->
+      <div class="panel">
+        <div class="table-header">
+          <h2>Zoznam platieb <span id="transfer-count-label" class="table-count-label"></span></h2>
+          <div class="table-actions">
+            <button type="button" id="btn-load-transfer" class="btn btn-primary btn-sm">Načítať platby</button>
+            <span id="transfer-selected-count" class="muted"></span>
+          </div>
+        </div>
+        <div id="transfer-loading" class="loading" hidden>Načítavam platby…</div>
+        <div id="transfer-empty" class="empty-state" hidden>Vyberte zdrojový a cieľový účet a načítajte platby.</div>
+        <div id="transfer-table-wrap" class="table-wrap" hidden>
+          <table id="transfer-table" class="invoices-table transfer-table">
+            <thead>
+              <tr>
+                <th class="col-check"><input type="checkbox" id="transfer-check-all" title="Označiť všetky"></th>
+                <th class="tr-col-date">Dátum</th>
+                <th class="tr-col-partner">Partner / Správa</th>
+                <th class="tr-col-vs">VS / Referencia</th>
+                <th class="tr-col-sum">Suma</th>
+                <th class="tr-col-transferred" title="Prevedené na cieľový účet">✦</th>
+                <th class="col-action"></th>
+              </tr>
+            </thead>
+            <tbody id="transfer-tbody"></tbody>
+          </table>
+        </div>
+        <div id="transfer-pagination" class="pagination" hidden></div>
+      </div>
+
+      <!-- Hromadný prevod -->
+      <div class="panel">
+        <button type="button" id="btn-transfer-selected" class="btn btn-primary" disabled>Previesť vybrané platby</button>
+        <div id="transfer-result" class="result-box" hidden></div>
+      </div>
+
+      <!-- Log API volaní -->
+      <div id="panel-transfer-api-log" class="panel panel-collapsible">
+        <button type="button" class="panel-toggle" id="toggle-transfer-api-log" aria-expanded="false">
+          <span class="panel-toggle-icon">▶</span> Log API volaní
+        </button>
+        <div class="panel-collapsible-content">
+          <div class="api-log-actions">
+            <button type="button" id="btn-clear-transfer-api-log" class="btn btn-secondary btn-sm">Vymazať log</button>
+          </div>
+          <pre id="transfer-api-log" class="api-log"></pre>
         </div>
       </div>
     </section>
