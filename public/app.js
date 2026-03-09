@@ -158,7 +158,7 @@ function showTransfer() {
 
 function saveSettings() {
   const o = {};
-  ['account', 'filter-sequence'].forEach(id => {
+  ['account', 'filter-sequence', 'filter-date-from', 'filter-date-to'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value != null) o[id] = el.value;
   });
@@ -173,7 +173,7 @@ function restoreSettings() {
     const raw = localStorage.getItem(STORAGE_SETTINGS);
     if (!raw) return;
     const o = JSON.parse(raw);
-    ['filter-sequence'].forEach(id => {
+    ['filter-sequence', 'filter-date-from', 'filter-date-to'].forEach(id => {
       const el = document.getElementById(id);
       if (el && o[id] != null) el.value = o[id];
     });
@@ -336,6 +336,7 @@ async function handleImportFile() {
   const input = document.getElementById('input-import-file');
   const file = input?.files?.[0];
   const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
+  const { from: dateFrom, to: dateTo } = getDateRange('filter-date-from', 'filter-date-to');
   if (!file) return;
   document.getElementById('invoices-loading').hidden = false;
   document.getElementById('invoices-table-wrap').hidden = true;
@@ -346,6 +347,8 @@ async function handleImportFile() {
   try {
     const params = new URLSearchParams();
     if (sequence) params.set('NumberingSequence', sequence);
+    if (dateFrom) params.set('DateFrom', dateFrom);
+    if (dateTo) params.set('DateTo', dateTo);
     const importUrl = '/api/import/invoices' + (params.toString() ? `?${params.toString()}` : '');
     const res = await fetch(importUrl, {
       method: 'POST',
@@ -363,8 +366,8 @@ async function handleImportFile() {
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0) {
       document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = sequence
-        ? 'Žiadna položka nevyhovuje filtru číselného radu.'
+      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || dateTo)
+        ? 'Žiadna položka nevyhovuje zadaným filtrom.'
         : 'V súbore neboli žiadne platné riadky.';
     } else {
       document.getElementById('invoices-table-wrap').hidden = false;
@@ -386,12 +389,15 @@ async function handleImportFile() {
 
 async function loadInvoices(skip = 0) {
   const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
+  const { from: dateFrom, to: dateTo } = getDateRange('filter-date-from', 'filter-date-to');
   const params = new URLSearchParams({
     PaymentStatus: '0',
     Top: '100',
     Skip: String(skip),
   });
   if (sequence) params.set('NumberingSequence', sequence);
+  if (dateFrom) params.set('DateFrom', dateFrom);
+  if (dateTo) params.set('DateTo', dateTo);
 
   document.getElementById('invoices-loading').hidden = false;
   document.getElementById('invoices-table-wrap').hidden = true;
@@ -408,8 +414,8 @@ async function loadInvoices(skip = 0) {
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0 && !hasMore) {
       document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = sequence
-        ? 'Žiadna faktúra nevyhovuje filtru číselného radu.'
+      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || dateTo)
+        ? 'Žiadna faktúra nevyhovuje zadaným filtrom.'
         : 'Žiadne neuhradené faktúry.';
     } else {
       document.getElementById('invoices-table-wrap').hidden = false;
@@ -719,9 +725,20 @@ function saveTransferSettings() {
     const o = {
       src: document.getElementById('transfer-src-account')?.value || '',
       dst: document.getElementById('transfer-dst-account')?.value || '',
+      dateFrom: document.getElementById('transfer-date-from')?.value || '',
+      dateTo: document.getElementById('transfer-date-to')?.value || '',
     };
     localStorage.setItem(STORAGE_TRANSFER, JSON.stringify(o));
   } catch (_) {}
+}
+
+function getDateRange(fromInputId, toInputId) {
+  const fromRaw = (document.getElementById(fromInputId)?.value || '').trim();
+  const toRaw = (document.getElementById(toInputId)?.value || '').trim();
+  if (fromRaw && toRaw && fromRaw > toRaw) {
+    return { from: toRaw, to: fromRaw };
+  }
+  return { from: fromRaw, to: toRaw };
 }
 
 /** Vytvorí deterministický kľúč pre platbu z dostupných polí (API nevracia vlastné ID). */
@@ -752,6 +769,10 @@ async function loadTransferAccounts() {
       const saved = JSON.parse(localStorage.getItem(STORAGE_TRANSFER) || '{}');
       if (saved.src) srcSel.value = saved.src;
       if (saved.dst) dstSel.value = saved.dst;
+      const transferDateFrom = document.getElementById('transfer-date-from');
+      const transferDateTo = document.getElementById('transfer-date-to');
+      if (transferDateFrom && saved.dateFrom) transferDateFrom.value = saved.dateFrom;
+      if (transferDateTo && saved.dateTo) transferDateTo.value = saved.dateTo;
     } catch (_) {}
   } catch (e) {
     srcSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
@@ -760,17 +781,23 @@ async function loadTransferAccounts() {
   }
 }
 
-async function fetchAllPayments(accountId) {
+async function fetchAllPayments(accountId, dateFrom, dateTo) {
   let all = [];
   let skip = 0;
   while (true) {
     const params = new URLSearchParams({ accountId: String(accountId), Top: '100', Skip: String(skip) });
+    if (dateFrom) params.set('DateFrom', dateFrom);
+    if (dateTo) params.set('DateTo', dateTo);
     const url = '/api/payments?' + params.toString();
     const res = await apiCallTransfer(url, { method: 'GET' });
     appendTransferApiLog('  Odpoveď (skrátene): ' + JSON.stringify(res)?.slice(0, 300));
     const batch = res?.data || res?.items || res?.payments || (Array.isArray(res) ? res : []);
     all = all.concat(batch);
-    if (batch.length < 100) break;
+    if (batch.length === 0) break;
+    const rawCount = Number(res?.meta?.rawCount);
+    if ((Number.isFinite(rawCount) && rawCount < 100) || batch.length < 100) {
+      break;
+    }
     skip += 100;
   }
   return all;
@@ -779,6 +806,7 @@ async function fetchAllPayments(accountId) {
 async function loadTransferPayments() {
   const srcId = document.getElementById('transfer-src-account').value;
   const dstId = document.getElementById('transfer-dst-account').value;
+  const { from: dateFrom, to: dateTo } = getDateRange('transfer-date-from', 'transfer-date-to');
   if (!srcId) {
     showTransferResult('Vyberte zdrojový účet.', 'error');
     return;
@@ -804,8 +832,8 @@ async function loadTransferPayments() {
 
   try {
     const [srcPayments, dstPayments] = await Promise.all([
-      fetchAllPayments(srcId),
-      fetchAllPayments(dstId),
+      fetchAllPayments(srcId, dateFrom, dateTo),
+      fetchAllPayments(dstId, dateFrom, dateTo),
     ]);
 
     dstPayments.forEach(p => {
@@ -1154,6 +1182,14 @@ function bindEvents() {
       }
     });
   }
+  ['filter-date-from', 'filter-date-to'].forEach((id) => {
+    const dateInput = document.getElementById(id);
+    if (!dateInput) return;
+    dateInput.addEventListener('change', () => {
+      saveSettings();
+      loadInvoices(0);
+    });
+  });
 
   document.getElementById('account')?.addEventListener('change', () => { updateSelectedCount(); saveSettings(); });
 
@@ -1216,6 +1252,12 @@ function bindEvents() {
   document.getElementById('transfer-dst-account')?.addEventListener('change', () => {
     updateTransferSelectedCount();
     saveTransferSettings();
+  });
+  ['transfer-date-from', 'transfer-date-to'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      saveTransferSettings();
+      loadTransferPayments();
+    });
   });
 
   document.getElementById('toggle-transfer-api-log')?.addEventListener('click', () => {

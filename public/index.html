@@ -81,15 +81,18 @@
 
       <div class="panel panel-settings-filters">
         <div class="settings-filters-item">
-          <label for="account" class="sf-label">Bankový účet</label>
-          <select id="account">
-            <option value="">— načítavam —</option>
-          </select>
+          <label for="filter-sequence" class="sf-label">Číselný rad</label>
+          <input type="text" id="filter-sequence" placeholder="napr. OF">
         </div>
         <div class="sf-divider"></div>
         <div class="settings-filters-item">
-          <label for="filter-sequence" class="sf-label">Číselný rad</label>
-          <input type="text" id="filter-sequence" placeholder="napr. OF">
+          <label for="filter-date-from" class="sf-label">Obdobie od</label>
+          <input type="date" id="filter-date-from">
+        </div>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label for="filter-date-to" class="sf-label">Obdobie do</label>
+          <input type="date" id="filter-date-to">
         </div>
       </div>
 
@@ -127,7 +130,15 @@
 
       <!-- Uhradiť vybrané -->
       <div class="panel">
-        <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané faktúry</button>
+        <div class="pay-actions-row">
+          <div class="settings-filters-item">
+            <label for="account" class="sf-label">Bankový účet na úhradu</label>
+            <select id="account">
+              <option value="">— načítavam —</option>
+            </select>
+          </div>
+          <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané faktúry</button>
+        </div>
         <div id="submit-result" class="result-box" hidden></div>
       </div>
 
@@ -177,7 +188,7 @@
       </div>
 
       <!-- Filtre -->
-      <div class="panel panel-settings-filters">
+      <div class="panel panel-settings-filters transfer-filters-panel">
         <span class="sf-section-label">Filter</span>
         <div class="sf-divider"></div>
         <div class="settings-filters-item">
@@ -186,6 +197,16 @@
         </div>
         <div class="sf-divider"></div>
         <div class="settings-filters-item">
+          <label for="transfer-date-from" class="sf-label">Obdobie od</label>
+          <input type="date" id="transfer-date-from">
+        </div>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item">
+          <label for="transfer-date-to" class="sf-label">Obdobie do</label>
+          <input type="date" id="transfer-date-to">
+        </div>
+        <div class="sf-divider"></div>
+        <div class="settings-filters-item transfer-status-filter-item">
           <label class="sf-label">Stav prevodu</label>
           <div class="toggle-group" id="transfer-status-filter">
             <button type="button" class="toggle-btn toggle-btn-active" data-value="all">Všetky</button>

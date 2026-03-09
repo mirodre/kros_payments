@@ -658,6 +658,18 @@ td input[type="checkbox"] {
   font-size: 0.9rem;
 }
 
+.pay-actions-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pay-actions-row .settings-filters-item {
+  flex: 1 1 360px;
+  min-width: 260px;
+}
+
 .hidden {
   display: none !important;
 }
@@ -805,7 +817,27 @@ td input[type="checkbox"] {
    Prevod medzi účtami – tabuľka
    ============================================================ */
 .transfer-filters-panel {
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem 1rem;
+}
+
+.transfer-filters-panel .sf-section-label {
+  width: 100%;
+  margin-bottom: 0.1rem;
+}
+
+.transfer-filters-panel .sf-divider {
+  display: none;
+}
+
+.transfer-filters-panel .settings-filters-item {
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+.transfer-filters-panel .transfer-status-filter-item {
+  flex: 0 0 100%;
+  min-width: 0;
 }
 
 /* Stĺpce transfer tabuľky */

@@ -108,13 +108,66 @@ function filterByNumberingSequence(items, rawSequence) {
   });
 }
 
+function normalizeYmdDate(value) {
+  const s = String(value ?? '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  return s;
+}
+
+function readDateRange(query) {
+  return {
+    from: normalizeYmdDate(query.DateFrom || query.dateFrom || query.from || ''),
+    to: normalizeYmdDate(query.DateTo || query.dateTo || query.to || ''),
+  };
+}
+
+function filterByDateRange(items, dateRange, getItemDate) {
+  if (!Array.isArray(items)) return [];
+  if (!dateRange.from && !dateRange.to) return items;
+  return items.filter((item) => {
+    const date = normalizeYmdDate(getItemDate(item));
+    if (!date) return false;
+    if (dateRange.from && date < dateRange.from) return false;
+    if (dateRange.to && date > dateRange.to) return false;
+    return true;
+  });
+}
+
+function parsePositiveInt(value, fallback, max = 1000) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.min(Math.floor(n), max);
+}
+
+const MAX_FILTER_SCAN_PAGES = 8;
+
+function buildForwardParams(query, excludedKeys = []) {
+  const excluded = new Set(excludedKeys.map((k) => String(k).toLowerCase()));
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (excluded.has(String(key).toLowerCase())) continue;
+    if (value == null || value === '') continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => {
+        if (v != null && v !== '') params.append(key, String(v));
+      });
+    } else {
+      params.set(key, String(value));
+    }
+  }
+  return params;
+}
+
 app.post('/api/import/invoices', upload.single('file'), (req, res) => {
   if (!req.file || !req.file.buffer) {
     return res.status(400).json({ error: 'Chýba súbor. Vyberte XLSX súbor.' });
   }
   try {
     const sequence = req.query.NumberingSequence || req.query.numberingSequence || req.query.sequence || '';
-    const data = filterByNumberingSequence(parseImportXlsx(req.file.buffer), sequence);
+    const dateRange = readDateRange(req.query);
+    let data = parseImportXlsx(req.file.buffer);
+    data = filterByNumberingSequence(data, sequence);
+    data = filterByDateRange(data, dateRange, (item) => item?.issueDate);
     res.json({ data });
   } catch (err) {
     res.status(400).json({ error: 'Nepodarilo sa spracovať súbor: ' + (err.message || String(err)) });
@@ -232,7 +285,7 @@ app.post('/api/payments/batch', (req, res, next) => {
   });
 });
 
-app.get('/api/invoices', async (req, res) => {
+app.get('/api/payments', async (req, res) => {
   const token = req.headers.authorization;
   const baseUrl = (req.headers['x-kros-base-url'] || DEFAULT_API_BASE).replace(/\/$/, '');
   if (!token || !token.startsWith('Bearer ')) {
@@ -240,19 +293,9 @@ app.get('/api/invoices', async (req, res) => {
   }
 
   try {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(req.query)) {
-      if (value == null || value === '') continue;
-      if (Array.isArray(value)) {
-        value.forEach((v) => {
-          if (v != null && v !== '') params.append(key, String(v));
-        });
-      } else {
-        params.set(key, String(value));
-      }
-    }
-
-    const url = `${baseUrl}/api/invoices${params.toString() ? `?${params.toString()}` : ''}`;
+    const dateRange = readDateRange(req.query);
+    const params = buildForwardParams(req.query, ['DateFrom', 'dateFrom', 'from', 'DateTo', 'dateTo', 'to']);
+    const url = `${baseUrl}/api/payments${params.toString() ? `?${params.toString()}` : ''}`;
     const krosRes = await fetch(url, {
       method: 'GET',
       headers: { Authorization: token },
@@ -268,13 +311,106 @@ app.get('/api/invoices', async (req, res) => {
     try {
       payload = text ? JSON.parse(text) : {};
     } catch (_) {
-      return res.status(502).json({ error: 'Neplatná JSON odpoveď z KROS API pre /api/invoices.' });
+      return res.status(502).json({ error: 'Neplatná JSON odpoveď z KROS API pre /api/payments.' });
     }
 
-    const rawSequence = req.query.NumberingSequence || req.query.numberingSequence || req.query.sequence || '';
-    if (Array.isArray(payload?.data)) {
-      payload.data = filterByNumberingSequence(payload.data, rawSequence);
+    if (Array.isArray(payload)) {
+      const rawCount = payload.length;
+      const filtered = filterByDateRange(payload, dateRange, (item) => item?.dateOfPayment);
+      return res.json({ data: filtered, meta: { rawCount } });
     }
+
+    if (Array.isArray(payload?.data)) {
+      const rawCount = payload.data.length;
+      payload.data = filterByDateRange(payload.data, dateRange, (item) => item?.dateOfPayment);
+      payload.meta = { ...(payload.meta || {}), rawCount };
+    } else if (Array.isArray(payload?.items)) {
+      const rawCount = payload.items.length;
+      payload.items = filterByDateRange(payload.items, dateRange, (item) => item?.dateOfPayment);
+      payload.meta = { ...(payload.meta || {}), rawCount };
+    } else if (Array.isArray(payload?.payments)) {
+      const rawCount = payload.payments.length;
+      payload.payments = filterByDateRange(payload.payments, dateRange, (item) => item?.dateOfPayment);
+      payload.meta = { ...(payload.meta || {}), rawCount };
+    }
+    return res.json(payload);
+  } catch (err) {
+    return res.status(502).json({ error: 'Chyba volania KROS API: ' + (err.message || String(err)) });
+  }
+});
+
+app.get('/api/invoices', async (req, res) => {
+  const token = req.headers.authorization;
+  const baseUrl = (req.headers['x-kros-base-url'] || DEFAULT_API_BASE).replace(/\/$/, '');
+  if (!token || !token.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Chýba Authorization hlavička (Bearer token).' });
+  }
+
+  try {
+    const rawSequence = req.query.NumberingSequence || req.query.numberingSequence || req.query.sequence || '';
+    const dateRange = readDateRange(req.query);
+    const usesExtraFiltering = Boolean(rawSequence || dateRange.from || dateRange.to);
+    const requestedTop = parsePositiveInt(req.query.Top, 100, 500);
+    const requestedSkip = parsePositiveInt(req.query.Skip, 0, 1000000);
+    const targetCount = requestedSkip + requestedTop + 1;
+    const upstreamTop = 100;
+    let upstreamSkip = 0;
+    let firstPayload = null;
+    const filtered = [];
+    let scannedPages = 0;
+
+    while (filtered.length < targetCount) {
+      const params = buildForwardParams(req.query, [
+        'Top',
+        'Skip',
+        'NumberingSequence',
+        'numberingSequence',
+        'sequence',
+      ]);
+      params.set('Top', String(upstreamTop));
+      params.set('Skip', String(upstreamSkip));
+
+      const url = `${baseUrl}/api/invoices${params.toString() ? `?${params.toString()}` : ''}`;
+      const krosRes = await fetch(url, {
+        method: 'GET',
+        headers: { Authorization: token },
+      });
+      const text = await krosRes.text();
+      if (!krosRes.ok) {
+        const contentType = krosRes.headers.get('content-type');
+        if (contentType) res.setHeader('Content-Type', contentType);
+        return res.status(krosRes.status).send(text);
+      }
+
+      let payload = {};
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_) {
+        return res.status(502).json({ error: 'Neplatná JSON odpoveď z KROS API pre /api/invoices.' });
+      }
+      if (!firstPayload) firstPayload = payload;
+      const batch = Array.isArray(payload?.data) ? payload.data : [];
+      const filteredBatch = filterByDateRange(
+        filterByNumberingSequence(batch, rawSequence),
+        dateRange,
+        (item) => item?.issueDate,
+      );
+      filtered.push(...filteredBatch);
+      scannedPages += 1;
+
+      if (batch.length < upstreamTop) break;
+      if (usesExtraFiltering && scannedPages >= MAX_FILTER_SCAN_PAGES) break;
+      upstreamSkip += upstreamTop;
+    }
+
+    const payload = (firstPayload && typeof firstPayload === 'object') ? { ...firstPayload } : {};
+    payload.data = filtered.slice(requestedSkip, requestedSkip + requestedTop);
+    payload.meta = {
+      ...(payload.meta || {}),
+      serverFiltered: true,
+      scannedPages,
+      scanCapped: usesExtraFiltering && scannedPages >= MAX_FILTER_SCAN_PAGES && filtered.length < targetCount,
+    };
     return res.json(payload);
   } catch (err) {
     return res.status(502).json({ error: 'Chyba volania KROS API: ' + (err.message || String(err)) });
