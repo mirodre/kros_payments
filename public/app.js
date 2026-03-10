@@ -147,13 +147,19 @@ function showMain() {
   document.getElementById('api-base-label').textContent = 'API: ' + (state.apiBase || getApiBase());
   loadAccounts();
   restoreSettings();
+  loadInvoices(0);
 }
 
-function showTransfer() {
+async function showTransfer() {
   hideAllSections();
   document.getElementById('transfer-section').classList.remove('hidden');
   document.getElementById('transfer-api-base-label').textContent = 'API: ' + (state.apiBase || getApiBase());
-  loadTransferAccounts();
+  await loadTransferAccounts();
+  const srcId = document.getElementById('transfer-src-account')?.value;
+  const dstId = document.getElementById('transfer-dst-account')?.value;
+  if (srcId && dstId && srcId !== dstId) {
+    loadTransferPayments();
+  }
 }
 
 function saveSettings() {
