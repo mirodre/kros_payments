@@ -56,16 +56,6 @@ h2 {
   margin-bottom: 1.25rem;
 }
 
-/* Nastavenia + Filtre – kompaktný riadok vedľa seba */
-.panel-settings-filters {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0.55rem 1.25rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-}
-
 .settings-filters-item {
   display: flex;
   align-items: center;
@@ -98,22 +88,6 @@ h2 {
   color: var(--text-muted);
   white-space: nowrap;
   margin: 0;
-}
-
-.sf-section-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.sf-divider {
-  width: 1px;
-  align-self: stretch;
-  background: var(--border);
-  margin: 0 1.25rem;
 }
 
 /* Zbaliteľné panely (Nastavenia, Filtre) */
@@ -161,6 +135,24 @@ h2 {
 
 .panel-collapsible.expanded .panel-collapsible-content {
   display: block;
+}
+
+/* Zbaliteľné filtre */
+.filters-panel-toggle {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.filters-collapsible-summary {
+  margin-left: 0.35rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: normal;
+}
+
+.filters-collapsible-summary:empty {
+  display: none;
 }
 
 .muted {
@@ -376,12 +368,6 @@ h2 {
 
 .main-header h1 {
   margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
 }
 
 /* Table */
@@ -822,28 +808,112 @@ td input[type="checkbox"] {
 /* ============================================================
    Prevod medzi účtami – tabuľka
    ============================================================ */
-.transfer-filters-panel {
-  align-items: flex-start;
-  gap: 0.75rem 1rem;
+/* Responzívne filter panely (neuhradené faktúry, prevod) */
+.filters-panel {
+  padding: 1rem 1.25rem;
 }
 
-.transfer-filters-panel .sf-section-label {
-  width: 100%;
-  margin-bottom: 0.1rem;
+.filters-panel-title {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
-.transfer-filters-panel .sf-divider {
-  display: none;
+.filters-panel-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
 }
 
-.transfer-filters-panel .settings-filters-item {
-  flex: 1 1 280px;
-  min-width: 240px;
+@media (min-width: 640px) {
+  .filters-panel-grid {
+    grid-template-columns: 1fr minmax(10.5rem, 13rem);
+    align-items: end;
+  }
+
+  .filters-panel-grid--with-status .filter-field-partner {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .filters-panel-grid--with-status .filter-field-date {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .filters-panel-grid--with-status .filter-field-status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  /* Dva rovnako široké stĺpce (účty pri prevode) */
+  .filters-panel-grid.filters-panel-grid--two-equal {
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+  }
 }
 
-.transfer-filters-panel .transfer-status-filter-item {
-  flex: 0 0 100%;
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
   min-width: 0;
+}
+
+.filter-field .sf-label {
+  white-space: normal;
+}
+
+.filter-field input[type="text"],
+.filter-field input[type="date"],
+.filter-field select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  min-width: 0;
+}
+
+.filter-field select {
+  cursor: pointer;
+}
+
+.filter-field input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Stav prevodu: samostatné „tabletky“, zalamujú sa na úzkej obrazovke */
+.filter-field-status .transfer-status-toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border: none;
+  overflow: visible;
+  background: transparent;
+  width: 100%;
+}
+
+.filter-field-status .transfer-status-toggle-group .toggle-btn {
+  flex: 1 1 auto;
+  min-width: min(100%, 7.75rem);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.filter-field-status .transfer-status-toggle-group .toggle-btn:last-child {
+  border-right: 1px solid var(--border);
 }
 
 /* Stĺpce transfer tabuľky */

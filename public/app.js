@@ -144,17 +144,21 @@ function showModulePicker() {
 function showMain() {
   hideAllSections();
   document.getElementById('main-section').classList.remove('hidden');
-  document.getElementById('api-base-label').textContent = 'API: ' + (state.apiBase || getApiBase());
+  // Štandardne filtre schovať (aby zaberali menej miesta)
+  setFiltersCollapsibleState('filters-invoices-collapsible', 'toggle-filters-invoices', false);
   loadAccounts();
   restoreSettings();
+  renderInvoicesFiltersSummary();
   loadInvoices(0);
 }
 
 async function showTransfer() {
   hideAllSections();
   document.getElementById('transfer-section').classList.remove('hidden');
-  document.getElementById('transfer-api-base-label').textContent = 'API: ' + (state.apiBase || getApiBase());
+  // Štandardne filtre schovať (aby zaberali menej miesta)
+  setFiltersCollapsibleState('filters-transfer-collapsible', 'toggle-filters-transfer', false);
   await loadTransferAccounts();
+  renderTransferFiltersSummary();
   const srcId = document.getElementById('transfer-src-account')?.value;
   const dstId = document.getElementById('transfer-dst-account')?.value;
   if (srcId && dstId && srcId !== dstId) {
@@ -162,9 +166,50 @@ async function showTransfer() {
   }
 }
 
+function setFiltersCollapsibleState(panelId, toggleButtonId, expanded) {
+  const panel = document.getElementById(panelId);
+  const btn = document.getElementById(toggleButtonId);
+  if (!panel || !btn) return;
+  panel.classList.toggle('expanded', !!expanded);
+  btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+function renderInvoicesFiltersSummary() {
+  const seq = (document.getElementById('filter-sequence')?.value || '').trim();
+  const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
+  const parts = [];
+  if (seq) parts.push(`Rad: ${seq}`);
+  if (dateFrom) parts.push(`Od: ${dateFrom}`);
+
+  const el = document.getElementById('filters-invoices-summary');
+  if (!el) return;
+  el.textContent = parts.length ? `(${parts.join(' · ')})` : '';
+}
+
+function renderTransferFiltersSummary() {
+  const partner = (document.getElementById('transfer-partner-filter')?.value || '').trim();
+  const dateFrom = (document.getElementById('transfer-date-from')?.value || '').trim();
+  const statusValue = document.querySelector('#transfer-status-filter .toggle-btn-active')?.dataset.value || 'all';
+
+  const statusLabel = statusValue === 'notTransferred'
+    ? 'Neprevedené'
+    : statusValue === 'transferred'
+      ? 'Prevedené'
+      : '';
+
+  const parts = [];
+  if (partner) parts.push(`Partner: ${partner}`);
+  if (dateFrom) parts.push(`Od: ${dateFrom}`);
+  if (statusLabel) parts.push(`Stav: ${statusLabel}`);
+
+  const el = document.getElementById('filters-transfer-summary');
+  if (!el) return;
+  el.textContent = parts.length ? `(${parts.join(' · ')})` : '';
+}
+
 function saveSettings() {
   const o = {};
-  ['account', 'filter-sequence', 'filter-date-from', 'filter-date-to'].forEach(id => {
+  ['account', 'filter-sequence', 'filter-date-from'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value != null) o[id] = el.value;
   });
@@ -179,7 +224,7 @@ function restoreSettings() {
     const raw = localStorage.getItem(STORAGE_SETTINGS);
     if (!raw) return;
     const o = JSON.parse(raw);
-    ['filter-sequence', 'filter-date-from', 'filter-date-to'].forEach(id => {
+    ['filter-sequence', 'filter-date-from'].forEach(id => {
       const el = document.getElementById(id);
       if (el && o[id] != null) el.value = o[id];
     });
@@ -342,7 +387,7 @@ async function handleImportFile() {
   const input = document.getElementById('input-import-file');
   const file = input?.files?.[0];
   const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
-  const { from: dateFrom, to: dateTo } = getDateRange('filter-date-from', 'filter-date-to');
+  const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
   if (!file) return;
   document.getElementById('invoices-loading').hidden = false;
   document.getElementById('invoices-table-wrap').hidden = true;
@@ -354,7 +399,6 @@ async function handleImportFile() {
     const params = new URLSearchParams();
     if (sequence) params.set('NumberingSequence', sequence);
     if (dateFrom) params.set('DateFrom', dateFrom);
-    if (dateTo) params.set('DateTo', dateTo);
     const importUrl = '/api/import/invoices' + (params.toString() ? `?${params.toString()}` : '');
     const res = await fetch(importUrl, {
       method: 'POST',
@@ -372,7 +416,7 @@ async function handleImportFile() {
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0) {
       document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || dateTo)
+      document.getElementById('invoices-empty').textContent = (sequence || dateFrom)
         ? 'Žiadna položka nevyhovuje zadaným filtrom.'
         : 'V súbore neboli žiadne platné riadky.';
     } else {
@@ -395,7 +439,7 @@ async function handleImportFile() {
 
 async function loadInvoices(skip = 0) {
   const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
-  const { from: dateFrom, to: dateTo } = getDateRange('filter-date-from', 'filter-date-to');
+  const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
   const params = new URLSearchParams({
     PaymentStatus: '0',
     Top: '100',
@@ -403,7 +447,6 @@ async function loadInvoices(skip = 0) {
   });
   if (sequence) params.set('NumberingSequence', sequence);
   if (dateFrom) params.set('DateFrom', dateFrom);
-  if (dateTo) params.set('DateTo', dateTo);
 
   document.getElementById('invoices-loading').hidden = false;
   document.getElementById('invoices-table-wrap').hidden = true;
@@ -420,7 +463,7 @@ async function loadInvoices(skip = 0) {
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0 && !hasMore) {
       document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || dateTo)
+      document.getElementById('invoices-empty').textContent = (sequence || dateFrom)
         ? 'Žiadna faktúra nevyhovuje zadaným filtrom.'
         : 'Žiadne neuhradené faktúry.';
     } else {
@@ -726,25 +769,25 @@ async function submitPayments() {
    PREVOD MEDZI ÚČTAMI
    ============================================================ */
 
+// Debounce kvôli rýchlym zmenám dropdownov (aby sa nespúšťalo viac načítaní naraz).
+let transferReloadTimer = null;
+function scheduleTransferReload() {
+  if (transferReloadTimer) clearTimeout(transferReloadTimer);
+  transferReloadTimer = setTimeout(() => {
+    transferReloadTimer = null;
+    loadTransferPayments();
+  }, 300);
+}
+
 function saveTransferSettings() {
   try {
     const o = {
       src: document.getElementById('transfer-src-account')?.value || '',
       dst: document.getElementById('transfer-dst-account')?.value || '',
       dateFrom: document.getElementById('transfer-date-from')?.value || '',
-      dateTo: document.getElementById('transfer-date-to')?.value || '',
     };
     localStorage.setItem(STORAGE_TRANSFER, JSON.stringify(o));
   } catch (_) {}
-}
-
-function getDateRange(fromInputId, toInputId) {
-  const fromRaw = (document.getElementById(fromInputId)?.value || '').trim();
-  const toRaw = (document.getElementById(toInputId)?.value || '').trim();
-  if (fromRaw && toRaw && fromRaw > toRaw) {
-    return { from: toRaw, to: fromRaw };
-  }
-  return { from: fromRaw, to: toRaw };
 }
 
 /** Vytvorí deterministický kľúč pre platbu z dostupných polí (API nevracia vlastné ID). */
@@ -776,9 +819,7 @@ async function loadTransferAccounts() {
       if (saved.src) srcSel.value = saved.src;
       if (saved.dst) dstSel.value = saved.dst;
       const transferDateFrom = document.getElementById('transfer-date-from');
-      const transferDateTo = document.getElementById('transfer-date-to');
       if (transferDateFrom && saved.dateFrom) transferDateFrom.value = saved.dateFrom;
-      if (transferDateTo && saved.dateTo) transferDateTo.value = saved.dateTo;
     } catch (_) {}
   } catch (e) {
     srcSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
@@ -812,7 +853,8 @@ async function fetchAllPayments(accountId, dateFrom, dateTo) {
 async function loadTransferPayments() {
   const srcId = document.getElementById('transfer-src-account').value;
   const dstId = document.getElementById('transfer-dst-account').value;
-  const { from: dateFrom, to: dateTo } = getDateRange('transfer-date-from', 'transfer-date-to');
+  const dateFrom = (document.getElementById('transfer-date-from')?.value || '').trim();
+  const dateTo = '';
   if (!srcId) {
     showTransferResult('Vyberte zdrojový účet.', 'error');
     return;
@@ -1147,28 +1189,6 @@ function bindEvents() {
   });
 
   document.getElementById('btn-connect').addEventListener('click', connect);
-  document.getElementById('btn-logout').addEventListener('click', () => {
-    state.token = '';
-    localStorage.removeItem(STORAGE_TOKEN);
-    showLogin();
-  });
-  document.getElementById('btn-restart')?.addEventListener('click', async () => {
-    const btn = document.getElementById('btn-restart');
-    if (btn?.disabled) return;
-    btn.disabled = true;
-    try {
-      await apiCall('/api/restart', { method: 'POST' });
-      showResult('submit-result', 'Služba sa reštartuje. Obnovte stránku o pár sekúnd (F5).', 'success');
-    } catch (e) {
-      if (e.status === 403) {
-        showResult('submit-result', 'Reštart je povolený len pri behu na localhoste. V termináli použite Ctrl+C a potom npm start.', 'warning');
-      } else {
-        showResult('submit-result', 'Chyba: ' + (e.message || e.status), 'error');
-      }
-    } finally {
-      btn.disabled = false;
-    }
-  });
   document.getElementById('btn-load-invoices').addEventListener('click', () => loadInvoices(0));
   document.getElementById('btn-load-from-file').addEventListener('click', () => document.getElementById('input-import-file').click());
   document.getElementById('input-import-file').addEventListener('change', handleImportFile);
@@ -1182,23 +1202,21 @@ function bindEvents() {
 
   const sequenceInput = document.getElementById('filter-sequence');
   if (sequenceInput) {
-    sequenceInput.addEventListener('input', () => { saveSettings(); });
-    sequenceInput.addEventListener('change', () => { saveSettings(); loadInvoices(0); });
+    sequenceInput.addEventListener('input', () => { saveSettings(); renderInvoicesFiltersSummary(); });
+    sequenceInput.addEventListener('change', () => { saveSettings(); loadInvoices(0); renderInvoicesFiltersSummary(); });
     sequenceInput.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') {
         ev.preventDefault();
         saveSettings();
         loadInvoices(0);
+        renderInvoicesFiltersSummary();
       }
     });
   }
-  ['filter-date-from', 'filter-date-to'].forEach((id) => {
-    const dateInput = document.getElementById(id);
-    if (!dateInput) return;
-    dateInput.addEventListener('change', () => {
-      saveSettings();
-      loadInvoices(0);
-    });
+  document.getElementById('filter-date-from')?.addEventListener('change', () => {
+    saveSettings();
+    loadInvoices(0);
+    renderInvoicesFiltersSummary();
   });
 
   document.getElementById('account')?.addEventListener('change', () => { updateSelectedCount(); saveSettings(); });
@@ -1228,16 +1246,25 @@ function bindEvents() {
   document.getElementById('btn-back-invoices')?.addEventListener('click', showModulePicker);
   document.getElementById('btn-back-transfer')?.addEventListener('click', showModulePicker);
 
-  // Transfer logout
-  document.getElementById('btn-transfer-logout')?.addEventListener('click', () => {
-    state.token = '';
-    localStorage.removeItem(STORAGE_TOKEN);
-    showLogin();
-  });
-
   // Transfer module actions
   document.getElementById('btn-load-transfer')?.addEventListener('click', loadTransferPayments);
   document.getElementById('btn-transfer-selected')?.addEventListener('click', transferSelectedPayments);
+
+  // Zbaliteľné filtre
+  document.getElementById('toggle-filters-invoices')?.addEventListener('click', () => {
+    const panel = document.getElementById('filters-invoices-collapsible');
+    if (!panel) return;
+    const expanded = !panel.classList.contains('expanded');
+    setFiltersCollapsibleState('filters-invoices-collapsible', 'toggle-filters-invoices', expanded);
+    renderInvoicesFiltersSummary();
+  });
+  document.getElementById('toggle-filters-transfer')?.addEventListener('click', () => {
+    const panel = document.getElementById('filters-transfer-collapsible');
+    if (!panel) return;
+    const expanded = !panel.classList.contains('expanded');
+    setFiltersCollapsibleState('filters-transfer-collapsible', 'toggle-filters-transfer', expanded);
+    renderTransferFiltersSummary();
+  });
 
   document.getElementById('transfer-check-all')?.addEventListener('change', function () {
     const selectable = transferState.filteredPayments.filter(p => !transferState.transferredIds.has(p._pid || makePaymentKey(p)));
@@ -1249,25 +1276,33 @@ function bindEvents() {
     renderTransferPayments();
   });
 
-  document.getElementById('transfer-partner-filter')?.addEventListener('input', applyTransferFilter);
+  document.getElementById('transfer-partner-filter')?.addEventListener('input', () => {
+    applyTransferFilter();
+    renderTransferFiltersSummary();
+  });
   document.getElementById('transfer-status-filter')?.querySelectorAll('.toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#transfer-status-filter .toggle-btn').forEach(b => b.classList.remove('toggle-btn-active'));
       btn.classList.add('toggle-btn-active');
       applyTransferFilter();
+      renderTransferFiltersSummary();
     });
   });
 
-  document.getElementById('transfer-src-account')?.addEventListener('change', saveTransferSettings);
+  document.getElementById('transfer-src-account')?.addEventListener('change', () => {
+    updateTransferSelectedCount();
+    saveTransferSettings();
+    scheduleTransferReload();
+  });
   document.getElementById('transfer-dst-account')?.addEventListener('change', () => {
     updateTransferSelectedCount();
     saveTransferSettings();
+    scheduleTransferReload();
   });
-  ['transfer-date-from', 'transfer-date-to'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('change', () => {
-      saveTransferSettings();
-      loadTransferPayments();
-    });
+  document.getElementById('transfer-date-from')?.addEventListener('change', () => {
+    saveTransferSettings();
+    loadTransferPayments();
+    renderTransferFiltersSummary();
   });
 
   document.getElementById('toggle-transfer-api-log')?.addEventListener('click', () => {

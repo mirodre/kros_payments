@@ -72,27 +72,34 @@
           <button type="button" id="btn-back-invoices" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
           <h1>Neuhradené faktúry</h1>
         </div>
-        <div class="header-actions">
-          <span id="api-base-label" class="muted"></span>
-          <button type="button" id="btn-restart" class="btn btn-secondary" title="Reštartuje Node server (iba pri behu na localhoste)">Reštartovať službu</button>
-          <button type="button" id="btn-logout" class="btn btn-secondary">Odhlásiť sa</button>
-        </div>
       </header>
 
-      <div class="panel panel-settings-filters">
-        <div class="settings-filters-item">
-          <label for="filter-sequence" class="sf-label">Číselný rad</label>
-          <input type="text" id="filter-sequence" placeholder="napr. OF">
+      <!-- Bankový účet na úhradu (hore, podobne ako v module Prevod) -->
+      <div class="panel filters-panel">
+        <h2 class="filters-panel-title">Bankový účet na úhradu</h2>
+        <div class="filter-field">
+          <select id="account">
+            <option value="">— načítavam —</option>
+          </select>
         </div>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="filter-date-from" class="sf-label">Obdobie od</label>
-          <input type="date" id="filter-date-from">
-        </div>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="filter-date-to" class="sf-label">Obdobie do</label>
-          <input type="date" id="filter-date-to">
+      </div>
+
+      <div id="filters-invoices-collapsible" class="panel panel-collapsible">
+        <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-invoices" aria-expanded="false">
+          <span class="panel-toggle-icon">▶</span> Filter
+          <span class="filters-collapsible-summary" id="filters-invoices-summary"></span>
+        </button>
+        <div class="panel-collapsible-content">
+          <div class="filters-panel-grid">
+            <div class="filter-field filter-field-sequence">
+              <label for="filter-sequence" class="sf-label">Číselný rad</label>
+              <input type="text" id="filter-sequence" placeholder="napr. OF" autocomplete="off">
+            </div>
+            <div class="filter-field filter-field-date">
+              <label for="filter-date-from" class="sf-label">Obdobie od</label>
+              <input type="date" id="filter-date-from">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -131,12 +138,6 @@
       <!-- Uhradiť vybrané -->
       <div class="panel">
         <div class="pay-actions-row">
-          <div class="settings-filters-item">
-            <label for="account" class="sf-label">Bankový účet na úhradu</label>
-            <select id="account">
-              <option value="">— načítavam —</option>
-            </select>
-          </div>
           <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané faktúry</button>
         </div>
         <div id="submit-result" class="result-box" hidden></div>
@@ -162,56 +163,51 @@
           <button type="button" id="btn-back-transfer" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
           <h1>Prevod medzi účtami</h1>
         </div>
-        <div class="header-actions">
-          <span id="transfer-api-base-label" class="muted"></span>
-          <button type="button" id="btn-transfer-logout" class="btn btn-secondary">Odhlásiť sa</button>
-        </div>
       </header>
 
       <!-- Účty -->
-      <div class="panel panel-settings-filters">
-        <span class="sf-section-label">Prevod medzi účtami</span>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="transfer-src-account" class="sf-label">Zdrojový účet</label>
-          <select id="transfer-src-account">
-            <option value="">— načítavam —</option>
-          </select>
-        </div>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="transfer-dst-account" class="sf-label">Cieľový účet</label>
-          <select id="transfer-dst-account">
-            <option value="">— načítavam —</option>
-          </select>
+      <div class="panel filters-panel">
+        <h2 class="filters-panel-title">Prevod medzi účtami</h2>
+        <div class="filters-panel-grid filters-panel-grid--two-equal">
+          <div class="filter-field">
+            <label for="transfer-src-account" class="sf-label">Zdrojový účet</label>
+            <select id="transfer-src-account">
+              <option value="">— načítavam —</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label for="transfer-dst-account" class="sf-label">Cieľový účet</label>
+            <select id="transfer-dst-account">
+              <option value="">— načítavam —</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <!-- Filtre -->
-      <div class="panel panel-settings-filters transfer-filters-panel">
-        <span class="sf-section-label">Filter</span>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="transfer-partner-filter" class="sf-label">Filter partnera</label>
-          <input type="text" id="transfer-partner-filter" placeholder="Substring názvu partnera…">
-        </div>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="transfer-date-from" class="sf-label">Obdobie od</label>
-          <input type="date" id="transfer-date-from">
-        </div>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item">
-          <label for="transfer-date-to" class="sf-label">Obdobie do</label>
-          <input type="date" id="transfer-date-to">
-        </div>
-        <div class="sf-divider"></div>
-        <div class="settings-filters-item transfer-status-filter-item">
-          <label class="sf-label">Stav prevodu</label>
-          <div class="toggle-group" id="transfer-status-filter">
-            <button type="button" class="toggle-btn toggle-btn-active" data-value="all">Všetky</button>
-            <button type="button" class="toggle-btn" data-value="notTransferred">Neprevedené</button>
-            <button type="button" class="toggle-btn" data-value="transferred">Prevedené</button>
+      <div id="filters-transfer-collapsible" class="panel panel-collapsible">
+        <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-transfer" aria-expanded="false">
+          <span class="panel-toggle-icon">▶</span> Filter
+          <span class="filters-collapsible-summary" id="filters-transfer-summary"></span>
+        </button>
+        <div class="panel-collapsible-content">
+          <div class="filters-panel-grid filters-panel-grid--with-status">
+            <div class="filter-field filter-field-partner">
+              <label for="transfer-partner-filter" class="sf-label">Filter partnera</label>
+              <input type="text" id="transfer-partner-filter" placeholder="Substring názvu partnera…" autocomplete="off">
+            </div>
+            <div class="filter-field filter-field-date">
+              <label for="transfer-date-from" class="sf-label">Obdobie od</label>
+              <input type="date" id="transfer-date-from">
+            </div>
+            <div class="filter-field filter-field-status">
+              <span class="sf-label" id="transfer-status-label">Stav prevodu</span>
+              <div class="toggle-group transfer-status-toggle-group" id="transfer-status-filter" role="group" aria-labelledby="transfer-status-label">
+                <button type="button" class="toggle-btn toggle-btn-active" data-value="all">Všetky</button>
+                <button type="button" class="toggle-btn" data-value="notTransferred">Neprevedené</button>
+                <button type="button" class="toggle-btn" data-value="transferred">Prevedené</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

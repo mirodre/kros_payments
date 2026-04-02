@@ -8,7 +8,6 @@ import multer from 'multer';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
 import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -172,25 +171,6 @@ app.post('/api/import/invoices', upload.single('file'), (req, res) => {
   } catch (err) {
     res.status(400).json({ error: 'Nepodarilo sa spracovať súbor: ' + (err.message || String(err)) });
   }
-});
-
-// Reštart služby (iba z localhostu) – spustí nový Node s server.js v priečinku servera
-app.post('/api/restart', (req, res) => {
-  const ip = req.ip || req.socket?.remoteAddress || '';
-  const localhost = /^127\.0\.0\.1$|^::1$|^::ffff:127\.0\.0\.1$/i.test(ip);
-  if (!localhost) {
-    return res.status(403).json({ error: 'Reštart je povolený len z localhostu.' });
-  }
-  res.status(202).json({ message: 'Reštartujem službu…' });
-  const scriptPath = path.join(__dirname, 'server.js');
-  const child = spawn(process.execPath, [scriptPath], {
-    detached: true,
-    stdio: 'ignore',
-    cwd: __dirname,
-    env: { ...process.env, PORT: String(PORT) },
-  });
-  child.unref();
-  setTimeout(() => process.exit(0), 500);
 });
 
 // Dedikovaná obsluha POST /api/payments/batch – 3 pokusy s backoff pri 408/timeout
