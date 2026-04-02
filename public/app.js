@@ -1044,6 +1044,7 @@ async function transferSinglePayment(payment) {
     accountId: Number(dstId),
     externalId: pid,
     note: 'Prevod medzi vlastnými účtami',
+    isWithoutDocument: true,
   };
   if (payment.paymentReference) paymentItem.paymentReference = payment.paymentReference;
 
@@ -1110,6 +1111,7 @@ async function transferSelectedPayments() {
       accountId: Number(dstId),
       externalId: pid,
       note: 'Prevod medzi vlastnými účtami',
+      isWithoutDocument: true,
     };
     if (payment.paymentReference) paymentItem.paymentReference = payment.paymentReference;
 
