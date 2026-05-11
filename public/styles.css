@@ -164,45 +164,6 @@ h2 {
   font-size: 0.85rem;
 }
 
-/* Login – na šírku obrazovky */
-#login-section {
-  width: 100%;
-  max-width: 100%;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-#login-section .form-group {
-  margin-bottom: 1rem;
-}
-
-#login-section .form-group label {
-  font-size: 1rem;
-}
-
-#login-section #api-base,
-#login-section #token {
-  width: 100%;
-  min-height: 4.5em;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
-  line-height: 1.5;
-  resize: vertical;
-}
-
-#login-section #api-base {
-  min-height: 4em;
-}
-
-#login-section #token {
-  min-height: 6em;
-}
-
-#login-section .btn {
-  margin-top: 0.5rem;
-}
-
 /* Výber prostredia (Test / Production) */
 .env-picker {
   display: flex;
@@ -743,9 +704,74 @@ td input[type="checkbox"] {
   margin-bottom: 0.25rem;
 }
 
-.module-picker-wrap .muted {
-  margin-bottom: 2rem;
+.module-picker-wrap .module-picker-lead {
+  margin-bottom: 1.25rem;
   display: block;
+}
+
+.module-kros-connect {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  max-width: 420px;
+  margin: 0 auto 1.75rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.module-kros-connect .btn-primary {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  margin-top: 0.35rem;
+  pointer-events: auto !important;
+}
+
+.module-kros-connect .result-box,
+.module-kros-connect .error-box {
+  margin-bottom: 0.75rem;
+  text-align: left;
+}
+
+.module-kros-connect-note {
+  margin: 0.75rem 0 0;
+  text-align: left;
+  line-height: 1.45;
+}
+
+.module-picker-locked-hint {
+  margin: -0.5rem auto 1rem;
+  max-width: 520px;
+}
+
+.module-company-switcher {
+  max-width: 560px;
+  margin: 0 auto 1.2rem;
+  text-align: left;
+}
+
+.module-company-switcher label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.module-company-switcher select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.95rem;
+}
+
+.module-company-switcher .result-box {
+  margin-top: 0.6rem;
 }
 
 .module-picker-grid {
@@ -798,6 +824,23 @@ td input[type="checkbox"] {
   font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+.btn-module.btn-module--locked,
+.btn-module:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: grayscale(0.35);
+  /* Inak môže „chytiť“ klik nad tlačidlom Prepojiť (prekrytie) a nič sa nestane. */
+  pointer-events: none;
+}
+
+.btn-module.btn-module--locked:hover,
+.btn-module:disabled:hover {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .module-picker-footer {

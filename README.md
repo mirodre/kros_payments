@@ -1,6 +1,6 @@
 # Platforma úhrady
 
-Malá servisná webová aplikácia na načítanie neuhradených faktúr z KROS Fakturácie a odoslanie platieb cez KROS OpenAPI.
+Malá servisná webová aplikácia na načítanie neuhradených faktúr z KROS aplikácie a odoslanie platieb cez KROS OpenAPI.
 
 ## Požiadavky
 
@@ -17,19 +17,18 @@ Aplikácia beží na [http://localhost:3000](http://localhost:3000).
 
 ## Použitie
 
-1. **Pripojenie** – vyberte prevádzku API (testovacia / ostrá), zadajte API token z nastavení v [fakturacia.kros.sk](https://fakturacia.kros.sk/) a kliknite na „Pripojiť“.
+1. **Pripojenie** – tlačidlo „Prepojiť s KROS“: aplikácia vás presmeruje na KROS consent stránku a po potvrdení súhlasu sa token doplní automaticky. Volanie KROS Open API je vždy smerované na production (`https://api-economy.kros.sk`).
 2. **Bankový účet** – vyberte účet, z ktorého sa majú evidovať úhrady (zoznam z KROS).
 3. **Načítať faktúry** – stlačte „Načítať neuhradené faktúry“. Zobrazia sa len neuhradené (PaymentStatus=0).
 4. **Filtre** – stav splatnosti (všetky / po splatnosti / v termíne), dátum vystavenia, suma od, partner, číselný rad. Filtre sa aplikujú na už načítaný zoznam.
 5. **Výber** – označte checkboxom faktúry, ktoré chcete uhradiť. Môžete použiť „Označiť všetky“ / „Odznačiť všetky“.
 6. **Dátum úhrady** – nastavte dátum, ktorý sa použije pre všetky vybrané platby.
-7. **Uhradiť vybrané** – odošle sa `POST /api/payments/batch` do KROS. Odpoveď 202 znamená prijaté; finálny výsledok príde cez váš webhook v KROS.
+7. **Uhradiť vybrané** – odošle sa `POST /api/payments/batch` do KROS. Odpoveď 202 znamená prijaté; finálny výsledok príde cez váš webhook v KROS aplikácii.
 
 ## Konfigurácia
 
 - **Premenná prostredia** (voliteľné):
   - `PORT` – port servera (predvolene 3000)
-  - `KROS_API_BASE_URL` – predvolená base URL KROS API (ak frontend neposiela X-Kros-Base-URL)
 
 ## Štruktúra
 

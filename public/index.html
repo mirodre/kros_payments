@@ -8,59 +8,42 @@
 </head>
 <body>
   <div id="app">
-    <!-- Prihlásenie -->
-    <section id="login-section" class="panel">
-      <h1>Platforma úhrady</h1>
-      <p class="muted">Pripojenie ku KROS Fakturácii cez OpenAPI</p>
-      <p class="muted small" style="margin-bottom: 0.75rem;">Aplikáciu vždy otvorte na <strong>http://localhost:3000</strong> (po spustení <code>npm start</code>).</p>
-      <div class="form-group">
-        <label>Prostredie KROS API</label>
-        <div class="env-picker">
-          <button type="button" class="env-btn" data-url="https://esw-testlab-openapigateway-api.azurewebsites.net" id="env-test">
-            <span class="env-btn-name">Test Open API</span>
-            <span class="env-btn-url">esw-testlab-openapigateway-api.azurewebsites.net</span>
-          </button>
-          <button type="button" class="env-btn" data-url="https://api-economy.kros.sk" id="env-prod">
-            <span class="env-btn-name">Production Open API</span>
-            <span class="env-btn-url">api-economy.kros.sk</span>
-          </button>
-        </div>
-        <input type="hidden" id="api-base" value="https://esw-testlab-openapigateway-api.azurewebsites.net">
-      </div>
-      <div class="form-group">
-        <label for="token">API token (Bearer)</label>
-        <textarea id="token" rows="4" placeholder="Vložte token z nastavení v fakturacia.kros.sk" autocomplete="off"></textarea>
-        <span class="muted small">Token je viditeľný – nepoužívajte na zdieľaných počítačoch.</span>
-      </div>
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" id="remember-token" checked>
-          Zapamätať token v prehliadači
-        </label>
-      </div>
-      <button type="button" id="btn-connect" class="btn btn-primary">Pripojiť</button>
-      <div id="login-error" class="error-box" hidden></div>
-    </section>
+    <input type="hidden" id="api-base" value="https://api-economy.kros.sk">
+    <input type="hidden" id="token" value="">
 
-    <!-- Výber modulu po prihlásení -->
-    <section id="module-picker" class="hidden">
+    <!-- Výber modulu (predvolená obrazovka) -->
+    <section id="module-picker">
       <div class="module-picker-wrap">
         <h1>Vyberte modul</h1>
-        <p class="muted">Čo chcete urobiť?</p>
+        <div id="module-kros-connect" class="module-kros-connect">
+          <div id="module-picker-connect-info" class="result-box" hidden></div>
+          <button type="button" id="btn-connect-kros" class="btn btn-primary" onclick="if (typeof startKrosPostConnection === 'function') startKrosPostConnection();">Prepojiť s KROS</button>
+          <p class="muted small module-kros-connect-note">
+            Na aktiváciu prepojenia je potrebné mať aktívnu licenciu na API v niektorej z KROS aplikácií.
+          </p>
+        </div>
+        <div id="module-picker-error" class="error-box" hidden></div>
+
+        <div id="module-company-switcher" class="module-company-switcher hidden">
+          <label for="module-company-select">Aktívna firma</label>
+          <select id="module-company-select"></select>
+          <div id="module-picker-info" class="result-box" hidden></div>
+        </div>
+        <p id="module-picker-locked-hint" class="muted small module-picker-locked-hint">Moduly sa aktivujú po úspešnom prepojení s KROS.</p>
         <div class="module-picker-grid">
-          <button type="button" id="btn-module-invoices" class="btn-module">
+          <button type="button" id="btn-module-invoices" class="btn-module" disabled aria-disabled="true">
             <span class="btn-module-icon">🧾</span>
             <span class="btn-module-title">Úhrada faktúr</span>
-            <span class="btn-module-desc">Hromadné uhrádzanie neuhradených faktúr z KROS Fakturácie</span>
+            <span class="btn-module-desc">Hromadné uhrádzanie neuhradených faktúr z KROS aplikácie</span>
           </button>
-          <button type="button" id="btn-module-transfer" class="btn-module">
+          <button type="button" id="btn-module-transfer" class="btn-module" disabled aria-disabled="true">
             <span class="btn-module-icon">🔄</span>
             <span class="btn-module-title">Prevod medzi účtami</span>
             <span class="btn-module-desc">Prevedie platby zo zdrojového účtu na cieľový účet s opačným znamienkom</span>
           </button>
         </div>
         <div class="module-picker-footer">
-          <button type="button" id="btn-module-logout" class="btn btn-secondary btn-sm">Odhlásiť sa</button>
+          <button type="button" id="btn-module-logout" class="btn btn-secondary btn-sm" hidden disabled>Zruš prepojenie</button>
         </div>
       </div>
     </section>
@@ -71,6 +54,9 @@
         <div style="display:flex;align-items:center;gap:0.75rem;">
           <button type="button" id="btn-back-invoices" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
           <h1>Neuhradené faktúry</h1>
+        </div>
+        <div class="header-actions">
+          <span id="active-company-label-main" class="muted"></span>
         </div>
       </header>
 
@@ -162,6 +148,9 @@
         <div style="display:flex;align-items:center;gap:0.75rem;">
           <button type="button" id="btn-back-transfer" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
           <h1>Prevod medzi účtami</h1>
+        </div>
+        <div class="header-actions">
+          <span id="active-company-label-transfer" class="muted"></span>
         </div>
       </header>
 
@@ -262,6 +251,6 @@
       </div>
     </section>
   </div>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260211"></script>
 </body>
 </html>

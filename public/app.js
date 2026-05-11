@@ -6,6 +6,10 @@ const STORAGE_TOKEN = 'platforma_uhrady_token';
 const STORAGE_BASE = 'platforma_uhrady_api_base';
 const STORAGE_SETTINGS = 'platforma_uhrady_settings';
 const STORAGE_TRANSFER = 'platforma_uhrady_transfer';
+const STORAGE_KROS_PENDING_STATE = 'platforma_uhrady_kros_pending_state';
+const STORAGE_KROS_CONNECTIONS = 'platforma_uhrady_kros_connections';
+const STORAGE_KROS_SELECTED_COMPANY_ID = 'platforma_uhrady_kros_selected_company_id';
+const KROS_PRODUCTION_API_BASE = 'https://api-economy.kros.sk';
 
 let state = {
   token: '',
@@ -23,6 +27,14 @@ let transferState = {
   currentSkip: 0,
   hasMore: false,
 };
+
+// #region agent log
+function dbgClientLog(payload) {
+  const body = JSON.stringify({ sessionId: 'fed1bd', timestamp: Date.now(), ...payload });
+  fetch('/api/client-debug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => {});
+  fetch('http://127.0.0.1:7524/ingest/6b6f437e-56f3-40f1-9090-aa8e8c7b77e9', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fed1bd' }, body }).catch(() => {});
+}
+// #endregion
 
 /** Hodnoty hlavičiek HTTP musia byť ISO-8859-1; odstráni znaky mimo tejto sady. */
 function toLatin1(str) {
@@ -121,27 +133,105 @@ function apiCallTransfer(path, options = {}) {
   return apiCall(path, options, 'transfer-api-log');
 }
 
+/** Signal na obmedzenie čakania na fetch (ak prehliadač podporuje AbortSignal.timeout). */
+function fetchTimeoutSignal(ms) {
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(ms);
+  }
+  return undefined;
+}
+
 function hideAllSections() {
-  ['login-section', 'module-picker', 'main-section', 'transfer-section'].forEach(id => {
+  ['module-picker', 'main-section', 'transfer-section'].forEach(id => {
     document.getElementById(id)?.classList.add('hidden');
   });
 }
 
-function showLogin() {
-  hideAllSections();
-  document.getElementById('login-section').classList.remove('hidden');
+/** Odstráni uložené KROS prepojenie a token (odhlásenie / neplatná relácia). */
+function clearKrosLocalSession() {
   state.token = '';
+  const tokenEl = document.getElementById('token');
+  if (tokenEl) tokenEl.value = '';
+  localStorage.removeItem(STORAGE_TOKEN);
+  localStorage.removeItem(STORAGE_BASE);
+  localStorage.removeItem(STORAGE_KROS_CONNECTIONS);
+  localStorage.removeItem(STORAGE_KROS_SELECTED_COMPANY_ID);
+  localStorage.removeItem(STORAGE_KROS_PENDING_STATE);
+}
+
+function hasKrosModuleAccess() {
+  const t = getToken().trim();
+  if (!t) return false;
+  return readKrosConnections().some((c) => c.token === t);
+}
+
+function updateModulePickerLockState() {
+  const unlocked = hasKrosModuleAccess();
+  ['btn-module-invoices', 'btn-module-transfer'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.disabled = !unlocked;
+    btn.classList.toggle('btn-module--locked', !unlocked);
+    btn.setAttribute('aria-disabled', unlocked ? 'false' : 'true');
+  });
+  const hint = document.getElementById('module-picker-locked-hint');
+  if (hint) hint.hidden = unlocked;
+  const logoutBtn = document.getElementById('btn-module-logout');
+  if (logoutBtn) {
+    logoutBtn.hidden = !unlocked;
+    logoutBtn.disabled = !unlocked;
+  }
+  const connectBox = document.getElementById('module-kros-connect');
+  if (connectBox) connectBox.hidden = unlocked;
+}
+
+function resetKrosConnectButton() {
+  const btn = document.getElementById('btn-connect-kros');
+  if (btn) btn.disabled = false;
+}
+
+function showDisconnectedModulePicker() {
+  hideAllSections();
+  clearKrosLocalSession();
   state.invoices = [];
   state.selectedIds.clear();
+  document.getElementById('module-picker').classList.remove('hidden');
+  const err = document.getElementById('module-picker-error');
+  if (err) err.hidden = true;
+  hidePickerConnectInfo();
+  resetKrosConnectButton();
+  renderModuleCompanySwitcher();
+  updateActiveCompanyLabels(null);
+}
+
+function showPickerConnectInfo(msg, type = 'success') {
+  const el = document.getElementById('module-picker-connect-info');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'result-box ' + type;
+  el.hidden = false;
+}
+
+function hidePickerConnectInfo() {
+  const el = document.getElementById('module-picker-connect-info');
+  if (!el) return;
+  el.hidden = true;
 }
 
 function showModulePicker() {
   hideAllSections();
   document.getElementById('module-picker').classList.remove('hidden');
-  document.getElementById('login-error').hidden = true;
+  const err = document.getElementById('module-picker-error');
+  if (err) err.hidden = true;
+  resetKrosConnectButton();
+  renderModuleCompanySwitcher();
 }
 
 function showMain() {
+  if (!hasKrosModuleAccess()) {
+    showModulePicker();
+    return;
+  }
   hideAllSections();
   document.getElementById('main-section').classList.remove('hidden');
   // Štandardne filtre schovať (aby zaberali menej miesta)
@@ -153,6 +243,10 @@ function showMain() {
 }
 
 async function showTransfer() {
+  if (!hasKrosModuleAccess()) {
+    showModulePicker();
+    return;
+  }
   hideAllSections();
   document.getElementById('transfer-section').classList.remove('hidden');
   // Štandardne filtre schovať (aby zaberali menej miesta)
@@ -236,9 +330,8 @@ function restoreSettings() {
 }
 
 function persistToken() {
-  const remember = document.getElementById('remember-token')?.checked;
   const token = getToken();
-  if (remember && token) {
+  if (token) {
     localStorage.setItem(STORAGE_TOKEN, token);
     localStorage.setItem(STORAGE_BASE, getApiBase());
   } else {
@@ -249,58 +342,355 @@ function persistToken() {
 
 function restoreSaved() {
   const saved = localStorage.getItem(STORAGE_TOKEN);
-  const base = localStorage.getItem(STORAGE_BASE);
   if (saved) {
     document.getElementById('token').value = saved;
-    document.getElementById('remember-token').checked = true;
   }
-  if (base) {
-    setApiBase(base);
-  } else {
-    setApiBase(document.getElementById('api-base').value);
+  // Vždy používame production Open API (aj keď v localStorage je uložená staršia hodnota).
+  setApiBase(KROS_PRODUCTION_API_BASE);
+}
+
+function readKrosConnections() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KROS_CONNECTIONS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((company) => {
+      return typeof company?.companyId === 'number'
+        && Number.isFinite(company.companyId)
+        && typeof company?.companyName === 'string'
+        && company.companyName.length > 0
+        && typeof company?.token === 'string'
+        && company.token.length > 0;
+    });
+  } catch (_) {
+    return [];
+  }
+}
+
+function showModulePickerInfo(msg, type = 'success') {
+  const el = document.getElementById('module-picker-info');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'result-box ' + type;
+  el.hidden = false;
+}
+
+function hideModulePickerInfo() {
+  const el = document.getElementById('module-picker-info');
+  if (!el) return;
+  el.hidden = true;
+}
+
+function getSelectedCompanyId() {
+  const raw = localStorage.getItem(STORAGE_KROS_SELECTED_COMPANY_ID);
+  if (!raw) return null;
+  const companyId = Number(raw);
+  return Number.isFinite(companyId) ? companyId : null;
+}
+
+function setActiveCompanyConnection(company) {
+  if (!company) return;
+  localStorage.setItem(STORAGE_KROS_SELECTED_COMPANY_ID, String(company.companyId));
+  document.getElementById('token').value = company.token;
+  state.token = company.token;
+  persistToken();
+  updateActiveCompanyLabels(company);
+}
+
+function updateActiveCompanyLabels(company) {
+  const companyText = company ? company.companyName : '';
+  const mainEl = document.getElementById('active-company-label-main');
+  const transferEl = document.getElementById('active-company-label-transfer');
+  if (mainEl) {
+    mainEl.textContent = companyText;
+    mainEl.classList.toggle('hidden', !companyText);
+  }
+  if (transferEl) {
+    transferEl.textContent = companyText;
+    transferEl.classList.toggle('hidden', !companyText);
+  }
+}
+
+function renderModuleCompanySwitcher() {
+  const wrap = document.getElementById('module-company-switcher');
+  const select = document.getElementById('module-company-select');
+  if (!wrap || !select) return;
+
+  const companies = readKrosConnections();
+  if (companies.length === 0) {
+    wrap.classList.add('hidden');
+    hideModulePickerInfo();
+    updateModulePickerLockState();
+    return;
+  }
+
+  wrap.classList.remove('hidden');
+  const selectedId = getSelectedCompanyId();
+  const selectedCompany = companies.find((company) => company.companyId === selectedId) || companies[0];
+  select.innerHTML = companies
+    .map((company) => `<option value="${company.companyId}">${escapeHtml(company.companyName)} (${company.companyId})</option>`)
+    .join('');
+  select.value = String(selectedCompany.companyId);
+  setActiveCompanyConnection(selectedCompany);
+  hideModulePickerInfo();
+  updateModulePickerLockState();
+}
+
+function getActiveCompanyConnection() {
+  const companies = readKrosConnections();
+  if (companies.length === 0) return null;
+  const selectedId = getSelectedCompanyId();
+  return companies.find((company) => company.companyId === selectedId) || companies[0];
+}
+
+function createConsentState() {
+  const fallback = `${Date.now()}-${Math.random().toString(16).slice(2)}`.replace(/[^a-zA-Z0-9]/g, '');
+  try {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID().replace(/-/g, '');
+  } catch (_) {}
+  return fallback;
+}
+
+function createIntegrationConsentUrl(stateValue) {
+  const consentBase = 'https://firma.kros.sk/integration-consent';
+  const redirectUrl = `${window.location.origin}/kros/callback`;
+  const params = new URLSearchParams({
+    plugin_name: 'PlatformaUhrady',
+    integrator_name: 'PlatformaUhrady',
+    version: '1',
+    response_mode: 'post',
+    redirect_url: redirectUrl,
+    company_mode: 'multiple',
+    state: stateValue,
+  });
+  return `${consentBase}?${params.toString()}`;
+}
+
+function startKrosPostConnection() {
+  const now = Date.now();
+  if (window.__platformaKrosDeb && now - window.__platformaKrosDeb < 500) {
+    dbgClientLog({ hypothesisId: 'H6', location: 'app.js:startKrosPostConnection:debounce', message: 'debounced duplicate', data: { deltaMs: now - window.__platformaKrosDeb } });
+    return;
+  }
+  window.__platformaKrosDeb = now;
+  dbgClientLog({ hypothesisId: 'H4', location: 'app.js:startKrosPostConnection:entry', message: 'startKrosPostConnection entered', data: {} });
+  try {
+    const stateValue = createConsentState();
+    localStorage.setItem(STORAGE_KROS_PENDING_STATE, stateValue);
+    showPickerConnectInfo('Presmerovávam do KROS prepojenia...', 'success');
+    const url = createIntegrationConsentUrl(stateValue);
+    let host = '';
+    try { host = new URL(url).host; } catch (_) {}
+    dbgClientLog({ hypothesisId: 'H5', location: 'app.js:startKrosPostConnection:beforeAssign', message: 'calling location.assign', data: { consentHost: host, urlLen: url.length } });
+    window.location.assign(url);
+    setTimeout(() => {
+      window.__platformaKrosDeb = 0;
+      dbgClientLog({ hypothesisId: 'H7', location: 'app.js:startKrosPostConnection:postAssignTimer', message: 'still on page 2.5s after assign (navigation likely blocked)', data: {} });
+    }, 2500);
+  } catch (err) {
+    console.error(err);
+    window.__platformaKrosDeb = 0;
+    dbgClientLog({ hypothesisId: 'H4', location: 'app.js:startKrosPostConnection:catch', message: 'startKrosPostConnection threw', data: { errName: err?.name, errMessage: String(err?.message || err).slice(0, 200) } });
+    showPickerConnectInfo(
+      'Nepodarilo sa spustiť prepojenie: ' + (err && err.message ? err.message : String(err)),
+      'error'
+    );
+  }
+}
+
+/** Klik cez delegáciu (capture) – spoľahlivé aj pri prekrytí alebo keď priamy listener nebeží. */
+function ensureKrosConnectClickHandler() {
+  const app = document.getElementById('app');
+  dbgClientLog({ hypothesisId: 'H1', location: 'app.js:ensureKrosConnectClickHandler:entry', message: 'ensureKrosConnectClickHandler', data: { hasApp: !!app, alreadyBound: app?.dataset?.krosConnectBound === '1' } });
+  if (!app || app.dataset.krosConnectBound === '1') return;
+  app.dataset.krosConnectBound = '1';
+  app.addEventListener(
+    'click',
+    (e) => {
+      const inBox = e.target?.closest?.('.module-kros-connect');
+      if (!inBox) return;
+      const rawTarget = e.target;
+      const el = rawTarget && rawTarget.nodeType === 1 ? rawTarget : rawTarget?.parentElement;
+      const btn = el?.closest?.('#btn-connect-kros');
+      dbgClientLog({ hypothesisId: 'H2', location: 'app.js:krosCapture:click', message: 'click inside module-kros-connect', data: { rawNodeType: rawTarget?.nodeType, rawName: rawTarget?.nodeName, elTag: el?.tagName, elId: el?.id || '', foundBtn: !!btn, btnDisabled: btn ? !!btn.disabled : null } });
+      let actionBtn = btn;
+      if (!actionBtn) {
+        const btnEl = document.getElementById('btn-connect-kros');
+        if (btnEl && !btnEl.disabled) {
+          const r = btnEl.getBoundingClientRect();
+          const x = e.clientX;
+          const y = e.clientY;
+          if (Number.isFinite(x) && Number.isFinite(y) && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+            actionBtn = btnEl;
+            dbgClientLog({ hypothesisId: 'H2', location: 'app.js:krosCapture:bboxFallback', message: 'matched button by bounding rect', data: { rW: Math.round(r.width), rH: Math.round(r.height) } });
+          }
+        }
+      }
+      if (!actionBtn) return;
+      if (actionBtn.disabled) {
+        dbgClientLog({ hypothesisId: 'H3', location: 'app.js:krosCapture:disabled', message: 'btn-connect-kros disabled, skip', data: {} });
+        return;
+      }
+      e.preventDefault();
+      startKrosPostConnection();
+    },
+    true
+  );
+  dbgClientLog({ hypothesisId: 'H1', location: 'app.js:ensureKrosConnectClickHandler:attached', message: 'capture listener attached on #app', data: {} });
+}
+
+async function processKrosPostCallbackResult() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('kros_post_result')) return;
+
+  const clearQueryFlag = () => {
+    params.delete('kros_post_result');
+    const nextQuery = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
+  };
+
+  const raw = sessionStorage.getItem('kros_post_result');
+  sessionStorage.removeItem('kros_post_result');
+
+  try {
+    if (!raw) {
+      showPickerConnectInfo('KROS vrátil prázdnu odpoveď pre POST prepojenie.', 'error');
+      clearQueryFlag();
+      return;
+    }
+
+    const payload = JSON.parse(raw);
+    const storedState = localStorage.getItem(STORAGE_KROS_PENDING_STATE);
+    const returnedState = payload?.state ? String(payload.state) : null;
+    if (storedState && returnedState && storedState !== returnedState) {
+      showPickerConnectInfo('Prepojenie odmietnuté: nesedí bezpečnostný parameter state.', 'error');
+      clearQueryFlag();
+      return;
+    }
+
+    const companies = Array.isArray(payload?.companies) ? payload.companies.filter((company) => {
+      return typeof company.companyId === 'number'
+        && Number.isFinite(company.companyId)
+        && typeof company.companyName === 'string'
+        && company.companyName.length > 0
+        && typeof company.token === 'string'
+        && company.token.length > 0;
+    }) : [];
+
+    if (companies.length === 0) {
+      showPickerConnectInfo('KROS nevrátil žiadny použiteľný token.', 'error');
+      clearQueryFlag();
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KROS_CONNECTIONS, JSON.stringify(companies));
+    localStorage.removeItem(STORAGE_KROS_PENDING_STATE);
+
+    const primary = companies[0];
+    localStorage.setItem(STORAGE_KROS_SELECTED_COMPANY_ID, String(primary.companyId));
+    document.getElementById('token').value = primary.token;
+    persistToken();
+    showPickerConnectInfo(`Prepojenie hotové: ${companies.length} firiem. Overujem prístup...`, 'success');
+
+    await connect();
+  } catch (_) {
+    showPickerConnectInfo('KROS vrátil neplatnú odpoveď pre POST prepojenie.', 'error');
+  } finally {
+    clearQueryFlag();
+    updateModulePickerLockState();
   }
 }
 
 async function connect() {
-  const token = getToken();
-  const apiBase = getApiBase();
-  if (!token) {
-    showError('login-error', 'Zadajte API token.');
-    return;
-  }
-  const btn = document.getElementById('btn-connect');
-  btn.disabled = true;
-  document.getElementById('login-error').hidden = true;
   try {
+    const token = getToken();
+    const apiBase = getApiBase();
+    if (!token) {
+      showError('module-picker-error', 'Najprv sa prepojte s KROS tlačidlom vyššie.');
+      return;
+    }
+    // Nepoužívame disabled na tomto tlačidle – v prehliadači potom často nepríde žiadny click event.
+    const errBox = document.getElementById('module-picker-error');
+    if (errBox) errBox.hidden = true;
+    hidePickerConnectInfo();
     state.token = token;
     state.apiBase = apiBase;
     // Overíme, či odpovedá náš server (ak nie, používateľ pravdepodobne otvoril stránku zo súboru alebo z inej adresy)
     try {
-      const pingRes = await fetch('/api/ping', { method: 'GET' });
+      const pingSignal = fetchTimeoutSignal(12000);
+      const pingRes = await fetch('/api/ping', {
+        method: 'GET',
+        ...(pingSignal ? { signal: pingSignal } : {}),
+      });
       if (pingRes.status === 404) {
-        showError('login-error',
+        showError('module-picker-error',
           'Spustite aplikáciu príkazom „npm start“ v priečinku projektu a otvorte v prehliadači http://localhost:3000.');
         return;
       }
     } catch (pingErr) {
-      showError('login-error',
-        'Nepodarilo sa spojiť so serverom. Spustite „npm start“ a otvorte http://localhost:3000. Chyba: ' + (pingErr.message || 'sieťová chyba'));
+      if (pingErr?.name === 'AbortError' || pingErr?.name === 'TimeoutError') {
+        showError('module-picker-error',
+          'Server neodpovedal včas (12 s). Skontrolujte sieť a či beží „npm start“ na http://localhost:3000.');
+      } else {
+        showError('module-picker-error',
+          'Nepodarilo sa spojiť so serverom. Spustite „npm start“ a otvorte http://localhost:3000. Chyba: ' + (pingErr.message || 'sieťová chyba'));
+      }
       return;
     }
-    await apiCall('/api/auth/check', { method: 'GET' });
+    const authSignal = fetchTimeoutSignal(45000);
+    await apiCall('/api/auth/check', { method: 'GET', ...(authSignal ? { signal: authSignal } : {}) });
     persistToken();
+    updateActiveCompanyLabels(getActiveCompanyConnection());
     showModulePicker();
   } catch (e) {
-    if (e.status === 401) {
-      showError('login-error', 'Neplatný token. Skontrolujte token v nastavení fakturacia.kros.sk.');
+    if (e?.name === 'AbortError' || e?.name === 'TimeoutError') {
+      showError('module-picker-error', 'KROS API neodpovedalo včas (45 s). Skúste znova o chvíľu.');
+    } else if (e.status === 401) {
+      showDisconnectedModulePicker();
+      showError('module-picker-error', 'Neplatný token. Zopakujte prepojenie s KROS alebo skontrolujte prístup v KROS aplikácii.');
     } else if (e.status === 404) {
-      showError('login-error',
-        'KROS API vrátilo 404. Skontrolujte: 1) či beží server (npm start) a otvárate http://localhost:3000, 2) či je URL KROS API správna (testovacia: esw-testlab-openapigateway-api.azurewebsites.net).');
+      showError('module-picker-error',
+        'KROS API vrátilo 404. Skontrolujte: 1) či beží server (npm start) a otvárate http://localhost:3000, 2) či je dostupné production API (https://api-economy.kros.sk).');
     } else {
-      showError('login-error', e.message || 'Pripojenie zlyhalo.');
+      showError('module-picker-error', e.message || 'Pripojenie zlyhalo.');
     }
   } finally {
-    btn.disabled = false;
+    resetKrosConnectButton();
+    updateModulePickerLockState();
+  }
+}
+
+async function handleModuleCompanyChange() {
+  const select = document.getElementById('module-company-select');
+  if (!select) return;
+
+  const companyId = Number(select.value);
+  const companies = readKrosConnections();
+  const company = companies.find((item) => item.companyId === companyId);
+  if (!company) return;
+
+  hideModulePickerInfo();
+  const previousToken = state.token || getToken();
+  const previousCompanyId = localStorage.getItem(STORAGE_KROS_SELECTED_COMPANY_ID);
+  setActiveCompanyConnection(company);
+  try {
+    await apiCall('/api/auth/check', { method: 'GET' });
+    showModulePickerInfo(`Aktívna firma: ${company.companyName}.`, 'success');
+  } catch (e) {
+    state.token = previousToken;
+    document.getElementById('token').value = previousToken || '';
+    if (previousCompanyId) {
+      localStorage.setItem(STORAGE_KROS_SELECTED_COMPANY_ID, previousCompanyId);
+    } else {
+      localStorage.removeItem(STORAGE_KROS_SELECTED_COMPANY_ID);
+    }
+    persistToken();
+    const msg = e?.status === 401
+      ? `Prepnutie zlyhalo: token pre firmu ${company.companyName} je neplatný.`
+      : `Prepnutie zlyhalo: ${e?.message || 'neznáma chyba'}`;
+    showModulePickerInfo(msg, 'error');
+    renderModuleCompanySwitcher();
   }
 }
 
@@ -334,7 +724,7 @@ async function loadAccounts() {
     if (saved?.account) sel.value = saved.account;
   } catch (e) {
     sel.innerHTML = '<option value="">Chyba načítania účtov</option>';
-    if (e.status === 401) showLogin();
+    if (e.status === 401) showDisconnectedModulePicker();
   }
 }
 
@@ -474,7 +864,7 @@ async function loadInvoices(skip = 0) {
     document.getElementById('invoices-loading').hidden = true;
     document.getElementById('invoices-empty').hidden = false;
     document.getElementById('invoices-empty').textContent = 'Chyba: ' + (e.message || e.status);
-    if (e.status === 401) showLogin();
+    if (e.status === 401) showDisconnectedModulePicker();
   }
 }
 
@@ -672,7 +1062,7 @@ async function paySingleInvoice(inv) {
       btn.disabled = false;
       btn.textContent = originalText;
     }
-    if (e.status === 401) showLogin();
+    if (e.status === 401) showDisconnectedModulePicker();
     else if (e.status === 408) {
       showResult('submit-result', 'Vypršal časový limit požiadavky (408). KROS API neodpovedalo včas. Skúste to znova o chvíľu.', 'warning');
     } else if (e.status === 409) {
@@ -728,13 +1118,13 @@ async function submitPayments() {
     });
     const requestId = res?.requestId || '';
     showResult('submit-result',
-      `Platby boli odoslané (202 Accepted). RequestId: ${requestId}. Výsledok spracovania príde cez váš callback v KROS Fakturácii.`,
+      `Platby boli odoslané (202 Accepted). RequestId: ${requestId}. Výsledok spracovania príde cez váš callback v KROS aplikácii.`,
       'success');
     state.selectedIds.clear();
     renderInvoices();
   } catch (e) {
     if (e.status === 401) {
-      showLogin();
+      showDisconnectedModulePicker();
       return;
     }
     if (e.status === 408) {
@@ -824,7 +1214,7 @@ async function loadTransferAccounts() {
   } catch (e) {
     srcSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
     dstSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
-    if (e.status === 401) showLogin();
+    if (e.status === 401) showDisconnectedModulePicker();
   }
 }
 
@@ -909,7 +1299,7 @@ async function loadTransferPayments() {
     document.getElementById('transfer-loading').hidden = true;
     document.getElementById('transfer-empty').hidden = false;
     document.getElementById('transfer-empty').textContent = 'Chyba: ' + (e.message || e.status);
-    if (e.status === 401) showLogin();
+    if (e.status === 401) showDisconnectedModulePicker();
   }
 }
 
@@ -1102,7 +1492,7 @@ async function transferSinglePayment(payment) {
       btn.disabled = false;
       btn.textContent = originalText;
     }
-    if (e.status === 401) showLogin();
+    if (e.status === 401) showDisconnectedModulePicker();
     else if (e.status === 408) showTransferResult('Vypršal časový limit (408). Skúste znova.', 'warning');
     else if (e.status === 409) showTransferResult('Duplicitná požiadavka (409). Počkajte cca 120 s a skúste znova.', 'warning');
     else if (e.status === 429) showTransferResult(`Príliš veľa požiadaviek (429). Počkajte ${e.retryAfter || 60} s.`, 'warning');
@@ -1165,7 +1555,7 @@ async function transferSelectedPayments() {
     } catch (e) {
       errorCount++;
       errors.push(`Platba ${pid}: ${e.message || e.status}`);
-      if (e.status === 401) { showLogin(); return; }
+      if (e.status === 401) { showDisconnectedModulePicker(); return; }
     }
   }
 
@@ -1188,7 +1578,7 @@ function bindEvents() {
     });
   });
 
-  document.getElementById('btn-connect').addEventListener('click', connect);
+  // Prepojiť s KROS: listener je na #app (capture) v ensureKrosConnectClickHandler().
   document.getElementById('btn-load-invoices').addEventListener('click', () => loadInvoices(0));
   document.getElementById('btn-load-from-file').addEventListener('click', () => document.getElementById('input-import-file').click());
   document.getElementById('input-import-file').addEventListener('change', handleImportFile);
@@ -1236,10 +1626,9 @@ function bindEvents() {
   // Module picker
   document.getElementById('btn-module-invoices')?.addEventListener('click', showMain);
   document.getElementById('btn-module-transfer')?.addEventListener('click', showTransfer);
+  document.getElementById('module-company-select')?.addEventListener('change', handleModuleCompanyChange);
   document.getElementById('btn-module-logout')?.addEventListener('click', () => {
-    state.token = '';
-    localStorage.removeItem(STORAGE_TOKEN);
-    showLogin();
+    showDisconnectedModulePicker();
   });
 
   // Back buttons
@@ -1319,12 +1708,23 @@ function bindEvents() {
 }
 
 function init() {
+  ensureKrosConnectClickHandler();
   restoreSaved();
-  bindEvents();
+  try {
+    bindEvents();
+  } catch (err) {
+    console.error('bindEvents:', err);
+    dbgClientLog({ hypothesisId: 'H8', location: 'app.js:init', message: 'bindEvents threw', data: { errMessage: String(err?.message || err).slice(0, 300) } });
+  }
+  showModulePicker();
+  updateActiveCompanyLabels(getActiveCompanyConnection());
+  void processKrosPostCallbackResult();
   if (state.invoices.length === 0) {
     document.getElementById('invoices-empty').hidden = false;
     document.getElementById('invoices-table-wrap').hidden = true;
   }
 }
+
+window.startKrosPostConnection = startKrosPostConnection;
 
 init();

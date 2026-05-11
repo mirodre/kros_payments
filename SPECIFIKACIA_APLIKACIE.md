@@ -3,7 +3,7 @@
 ## Účel
 
 Malá webová aplikácia na interné/servisné použitie, ktorá:
-1. sa pripojí k KROS Fakturácii cez **API token** (Bearer),
+1. sa pripojí k KROS aplikácii cez **API token** (Bearer),
 2. **načíta neuhradené faktúry** z API,
 3. zobrazí ich používateľovi s možnosťou **výberu podľa kritérií**,
 4. pre vybrané faktúry **vytvorí a odošle platby** cez KROS OpenAPI.
@@ -61,7 +61,7 @@ Token si používateľ zadá sám, uloží sa lokálne.
     - **dateOfPayment** (povinné), **sumOfPayment** (povinné),
     - **variableSymbol**, **accountId**, prípadne **remittanceInformation** (správa pre prijímateľa) alebo **paymentReference**.
   - Zavolať **POST /api/payments/batch** s telom typu **PaymentListApiRequestBody**: `{ "data": [ ...pole platieb... ] }`.
-- API vracia **202 Accepted** a v odpovedi **requestId** (UUID). Spracovanie je asynchrónne – výsledok príde cez **callback (webhook)** na URL, ktorú má používateľ nastavenú v KROS Fakturácii. V aplikácii stačí zobraziť používateľovi, že platby boli odoslané (202) a že výsledky dostane cez svoj callback / v systéme.
+- API vracia **202 Accepted** a v odpovedi **requestId** (UUID). Spracovanie je asynchrónne – výsledok príde cez **callback (webhook)** na URL, ktorú má používateľ nastavenú v KROS aplikácii. V aplikácii stačí zobraziť používateľovi, že platby boli odoslané (202) a že výsledky dostane cez svoj callback / v systéme.
 
 ### 6. Ošetrenie chýb a limitov
 - Pri **401** zobraziť správu o neplatnom tokene a vrátiť na zadanie tokenu.

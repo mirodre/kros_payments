@@ -8,13 +8,78 @@ import multer from 'multer';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_API_BASE = process.env.KROS_API_BASE_URL || 'https://esw-testlab-openapigateway-api.azurewebsites.net';
+// Vždy production Open API (bez prepínania test/prod).
+const DEFAULT_API_BASE = 'https://api-economy.kros.sk';
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+app.use(express.urlencoded({ extended: true }));
+
+function normalizeCallbackCompany(company) {
+  const companyId = Number(company?.companyId);
+  return {
+    companyId,
+    companyName: String(company?.companyName || ''),
+    token: String(company?.token || ''),
+    webhookSecret: company?.webhookSecret ? String(company.webhookSecret) : undefined,
+  };
+}
+
+function parseCallbackCompanies(body) {
+  if (!body || typeof body !== 'object') return [];
+
+  // extended: true (qs): data[0][pole]=… → { data: [ { pole: … } ] }
+  const nested = body.data;
+  if (Array.isArray(nested) && nested.length > 0) {
+    return nested
+      .map(normalizeCallbackCompany)
+      .filter((company) => Number.isFinite(company.companyId) && company.companyName && company.token);
+  }
+
+  const grouped = new Map();
+  const keyRegex = /^data\[(\d+)\]\[(companyId|companyName|token|webhookSecret)\]$/;
+  for (const [key, rawValue] of Object.entries(body)) {
+    const match = key.match(keyRegex);
+    if (!match) continue;
+    const idx = Number(match[1]);
+    const field = match[2];
+    const current = grouped.get(idx) || {};
+    current[field] = String(rawValue ?? '');
+    grouped.set(idx, current);
+  }
+
+  return [...grouped.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, company]) => normalizeCallbackCompany(company))
+    .filter((company) => Number.isFinite(company.companyId) && company.companyName && company.token);
+}
+
+function renderKrosCallbackPage(payload) {
+  const safePayload = JSON.stringify(payload).replace(/</g, '\\u003c');
+  return `<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dokončujem prepojenie...</title>
+  </head>
+  <body style="font-family: Inter, Arial, sans-serif; background:#0f1320; color:#eef3ff; margin:0; display:flex; min-height:100vh; align-items:center; justify-content:center;">
+    <p>Dokončujem prepojenie s KROS...</p>
+    <script>
+      try {
+        sessionStorage.setItem("kros_post_result", '${safePayload}');
+      } catch (error) {
+        console.error(error);
+      }
+      window.location.replace("/?kros_post_result=1");
+    </script>
+  </body>
+</html>`;
+}
 
 // CORS – umožní volať API aj keď je stránka otvorená z inej adresy alebo zo súboru
 app.use((req, res, next) => {
@@ -25,12 +90,43 @@ app.use((req, res, next) => {
   next();
 });
 
+// Vyhnúť sa zastaralému app.js v cache (inak ostane connect() s disabled tlačidlom atď.)
+app.use((req, res, next) => {
+  if (req.method === 'GET' && /\.(?:js|html)$/i.test(req.path)) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  }
+  next();
+});
+
+/** Zápis klientovských debug logov (NDJSON) – musí byť pred express.static. */
+const CLIENT_DEBUG_LOG = path.join(__dirname, '.debug-fed1bd.log');
+app.post('/api/client-debug', express.json({ limit: '64kb' }), (req, res) => {
+  try {
+    const line = JSON.stringify({ ...req.body, _receivedAt: Date.now() }) + '\n';
+    fs.appendFileSync(CLIENT_DEBUG_LOG, line, 'utf8');
+  } catch (err) {
+    console.error('client-debug append failed:', err?.message || err);
+  }
+  res.json({ ok: true });
+});
+
 // Statické súbory (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Kontrola, či beží náš server (pred proxy)
 app.get('/api/ping', (req, res) => {
   res.json({ ok: true, message: 'Platforma úhrady – server beží.' });
+});
+
+app.post('/kros/callback', (req, res) => {
+  const state = req.body?.state ? String(req.body.state) : null;
+  const companies = parseCallbackCompanies(req.body);
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(renderKrosCallbackPage({ state, companies }));
+});
+
+app.get('/kros/callback', (req, res) => {
+  res.redirect('/');
 });
 
 // Import dokladov zo XLSX (štruktúra ako import_dokladov_example.xlsx)
