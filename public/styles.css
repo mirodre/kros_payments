@@ -506,28 +506,7 @@ td input[type="checkbox"] {
   color: var(--text-muted);
 }
 
-/* Na úzkych obrazovkách ešte kompaktnejšie */
-@media (max-width: 768px) {
-  .invoices-table {
-    font-size: 0.75rem;
-  }
-  .invoices-table th,
-  .invoices-table td {
-    padding: 0.3rem 0.35rem;
-  }
-  .invoices-table .col-dates {
-    width: 8.5rem;
-  }
-  .invoices-table .col-sum {
-    width: 5.5rem;
-  }
-  .invoices-table .col-vs {
-    width: 3.5rem;
-  }
-  .invoices-table .col-action {
-    width: 4.5rem;
-  }
-}
+/* Mobilné zúženie stĺpcov pre .invoices-table je vylúčené: #invoices-table a #transfer-table majú vlastné karty v @media (max-width: 768px) nižšie. */
 
 .badge {
   display: inline-block;
@@ -1063,4 +1042,395 @@ td input[type="checkbox"] {
 .transfer-table tr.row-transferred .tr-partner-name {
   color: var(--text-muted);
   font-weight: 500;
+}
+
+.transfer-thead-check-caption,
+.invoices-thead-check-caption {
+  display: none;
+}
+
+/* Zoznam platieb (prevod): na úzkych obrazovkách karty namiesto horizontálne stlačenej tabuľky */
+@media (max-width: 768px) {
+  #transfer-table-wrap {
+    overflow-x: visible;
+  }
+
+  .transfer-thead-check-caption {
+    display: inline;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-left: 0.15rem;
+  }
+
+  .transfer-table {
+    display: block;
+    width: 100%;
+    table-layout: auto;
+    font-size: 0.875rem;
+  }
+
+  .transfer-table thead {
+    display: block;
+    width: 100%;
+  }
+
+  .transfer-table thead tr {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0 0.65rem;
+    margin-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .transfer-table thead th {
+    border-bottom: none;
+    padding: 0;
+    white-space: normal;
+  }
+
+  .transfer-table thead th:not(.col-check) {
+    display: none;
+  }
+
+  .transfer-table thead th.col-check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: auto;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .transfer-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .transfer-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 0.45rem 0.65rem;
+    padding: 0.75rem;
+    margin-bottom: 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .transfer-table tbody tr.row-transferred {
+    background: rgba(5, 150, 105, 0.06);
+    border-color: var(--success);
+  }
+
+  .transfer-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .transfer-table tbody td {
+    border-bottom: none;
+    padding: 0;
+  }
+
+  .transfer-table tbody tr:not(.row-transferred):hover {
+    background: var(--bg);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+
+  .transfer-table tbody tr.row-transferred:hover {
+    background: rgba(5, 150, 105, 0.1);
+    border-color: var(--success);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+
+  .transfer-table tbody tr.selected {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    box-shadow: none;
+  }
+
+  .transfer-table tbody tr.selected.row-transferred {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35), 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .transfer-table tbody td.col-check {
+    display: none;
+  }
+
+  .transfer-table .tr-col-date {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .transfer-table .tr-col-sum {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  /* Stav „prevedené“: bez ikony – zelený rám + podfarbenie */
+  .transfer-table tbody td.tr-col-transferred {
+    display: none;
+  }
+
+  .transfer-table .tr-col-partner {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+
+  /* VS / referencia len na desktope – na mobile nepreťažuje kartu */
+  .transfer-table .tr-col-vs {
+    display: none;
+  }
+
+  .transfer-table .col-action {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+  }
+
+  .transfer-table .btn-transfer-one {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .transfer-table .tr-note {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    max-width: none;
+  }
+
+  /* Zoznam faktúr (úhrada): rovnaký kartový mobile layout ako prevod */
+  #invoices-table-wrap {
+    overflow-x: visible;
+  }
+
+  .invoices-thead-check-caption {
+    display: inline;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-left: 0.15rem;
+  }
+
+  #invoices-table {
+    display: block;
+    width: 100%;
+    table-layout: auto;
+    font-size: 0.875rem;
+  }
+
+  #invoices-table thead {
+    display: block;
+    width: 100%;
+  }
+
+  #invoices-table thead tr {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0 0.65rem;
+    margin-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #invoices-table thead th {
+    border-bottom: none;
+    padding: 0;
+    white-space: normal;
+  }
+
+  #invoices-table thead th:not(.col-check) {
+    display: none;
+  }
+
+  #invoices-table thead th.col-check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: auto;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  #invoices-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  #invoices-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 0.45rem 0.65rem;
+    padding: 0.75rem;
+    margin-bottom: 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  #invoices-table tbody tr.row-paid {
+    background: rgba(13, 150, 104, 0.08);
+    border-color: var(--success);
+  }
+
+  #invoices-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  #invoices-table tbody td {
+    border-bottom: none;
+    padding: 0;
+  }
+
+  #invoices-table tbody tr:not(.row-paid):hover {
+    background: var(--bg);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+
+  #invoices-table tbody tr.row-paid:hover {
+    background: rgba(13, 150, 104, 0.12);
+    border-color: var(--success);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+
+  #invoices-table tbody tr.selected {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    box-shadow: none;
+  }
+
+  #invoices-table tbody tr.selected.row-paid {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35), 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  #invoices-table tbody td.col-check {
+    display: none;
+  }
+
+  /* Dátumy: jedna línia, bez veľkých nadpisov (desktop „Splatn.:“ sa tu prepíše) */
+  #invoices-table .col-dates {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    align-self: center;
+    white-space: normal;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: var(--text);
+  }
+
+  #invoices-table .col-dates .cell-l1,
+  #invoices-table .col-dates .cell-l2 {
+    display: inline;
+    margin: 0;
+    font-size: inherit;
+    font-weight: 500;
+    color: inherit;
+  }
+
+  #invoices-table .col-dates .cell-l2::before {
+    content: " · spl. ";
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 0.92em;
+  }
+
+  /* Sumy: na mobile len k úhrade (riadok „celkom dokladu“ je v title na td) */
+  #invoices-table .col-sum {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  #invoices-table .col-sum .cell-l1 {
+    display: none;
+  }
+
+  #invoices-table .col-sum .cell-l2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  #invoices-table .col-doc {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0;
+    padding-top: 0.05rem;
+  }
+
+  /* Jedna línia: partner (priorita) | doklad (menší, vedľajší) */
+  #invoices-table .col-doc .cell-l2 {
+    order: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    margin-top: 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #invoices-table .col-doc .cell-l1 {
+    order: 2;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 42%;
+    margin-top: 0;
+    padding-left: 0.45rem;
+    margin-left: 0.35rem;
+    border-left: 1px solid var(--border);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #invoices-table .col-vs {
+    display: none;
+  }
+
+  #invoices-table .col-action {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+  }
+
+  #invoices-table .btn-pay-one {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
 }

@@ -116,7 +116,10 @@
           <table id="invoices-table" class="invoices-table">
             <thead>
               <tr>
-                <th class="col-check"><input type="checkbox" id="check-all" title="Označiť všetky"></th>
+                <th class="col-check">
+                  <input type="checkbox" id="check-all" title="Označiť všetky" aria-label="Označiť všetky zobrazené faktúry">
+                  <span class="invoices-thead-check-caption">Označiť zobrazené</span>
+                </th>
                 <th class="col-doc">Doklad</th>
                 <th class="col-dates">Dátumy</th>
                 <th class="col-sum">Suma</th>
@@ -225,7 +228,10 @@
           <table id="transfer-table" class="invoices-table transfer-table">
             <thead>
               <tr>
-                <th class="col-check"><input type="checkbox" id="transfer-check-all" title="Označiť všetky"></th>
+                <th class="col-check">
+                  <input type="checkbox" id="transfer-check-all" title="Označiť všetky" aria-label="Označiť všetky zobrazené platby">
+                  <span class="transfer-thead-check-caption">Označiť zobrazené</span>
+                </th>
                 <th class="tr-col-date">Dátum</th>
                 <th class="tr-col-partner">Partner / Správa</th>
                 <th class="tr-col-vs">VS / Referencia</th>

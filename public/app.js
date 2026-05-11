@@ -958,6 +958,12 @@ function renderInvoices() {
 
   tbody.querySelectorAll('tr').forEach(tr => {
     tr.addEventListener('click', ev => {
+      if (tr.dataset.suppressNextInvoiceClick === '1') {
+        delete tr.dataset.suppressNextInvoiceClick;
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
       if (ev.target.tagName === 'INPUT' || ev.target.closest('button')) return;
       const id = normId(tr.dataset.id);
       const cb = tr.querySelector('.inv-check');
@@ -1189,6 +1195,137 @@ function makePaymentKey(p) {
   return [date, sum, vs, ref].join('|');
 }
 
+/** Dotyk pre swipe na mobile (prevod / úhrada faktúr). */
+let transferRowSwipeState = null;
+let invoiceRowSwipeState = null;
+
+function isMobileCardTableViewport() {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches;
+}
+
+/** Swipe sprava doľava na riadku platby spustí prevod (rovnako ako „Previesť“). */
+function bindTransferRowSwipeToTbody() {
+  const tbody = document.getElementById('transfer-tbody');
+  if (!tbody || tbody.dataset.transferRowSwipeBound === '1') return;
+  tbody.dataset.transferRowSwipeBound = '1';
+
+  const SWIPE_MIN_DX = 56;
+  const HORIZONTAL_RATIO = 1.15;
+
+  tbody.addEventListener('touchstart', e => {
+    if (!isMobileCardTableViewport()) return;
+    if (e.target.closest('button')) return;
+    if (e.touches.length !== 1) {
+      transferRowSwipeState = null;
+      return;
+    }
+    const tr = e.target.closest('tr');
+    if (!tr || tr.closest('tbody') !== tbody || tr.classList.contains('row-transferred')) {
+      transferRowSwipeState = null;
+      return;
+    }
+    const t = e.touches[0];
+    transferRowSwipeState = { tr, id: t.identifier, x0: t.clientX, y0: t.clientY };
+  }, { passive: true });
+
+  tbody.addEventListener('touchmove', e => {
+    if (!transferRowSwipeState) return;
+    const t = Array.from(e.touches).find(x => x.identifier === transferRowSwipeState.id);
+    if (!t) return;
+    const dx = Math.abs(t.clientX - transferRowSwipeState.x0);
+    const dy = Math.abs(t.clientY - transferRowSwipeState.y0);
+    if (dy > 48 && dy > dx * 1.4) transferRowSwipeState = null;
+  }, { passive: true });
+
+  tbody.addEventListener('touchcancel', () => {
+    transferRowSwipeState = null;
+  }, { passive: true });
+
+  tbody.addEventListener('touchend', e => {
+    if (!transferRowSwipeState) return;
+    const t = Array.from(e.changedTouches).find(x => x.identifier === transferRowSwipeState.id);
+    const state = transferRowSwipeState;
+    transferRowSwipeState = null;
+    if (!t || !isMobileCardTableViewport()) return;
+    const dxLeft = state.x0 - t.clientX;
+    const dy = state.y0 - t.clientY;
+    if (dxLeft < SWIPE_MIN_DX) return;
+    if (Math.abs(dxLeft) < Math.abs(dy) * HORIZONTAL_RATIO) return;
+    if (state.tr.classList.contains('row-transferred')) return;
+    const pid = state.tr.dataset.id;
+    if (!pid) return;
+    const payment = transferState.payments.find(p => (p._pid || makePaymentKey(p)) === pid);
+    if (payment) {
+      state.tr.dataset.suppressNextTransferClick = '1';
+      void transferSinglePayment(payment);
+    }
+  }, { passive: true });
+}
+
+/** Swipe sprava doľava na riadku faktúry spustí úhradu (rovnako ako „Uhradiť“). */
+function bindInvoiceRowSwipeToTbody() {
+  const tbody = document.getElementById('invoices-tbody');
+  if (!tbody || tbody.dataset.invoiceRowSwipeBound === '1') return;
+  tbody.dataset.invoiceRowSwipeBound = '1';
+
+  const SWIPE_MIN_DX = 56;
+  const HORIZONTAL_RATIO = 1.15;
+
+  function normId(id) {
+    if (id === undefined || id == null) return '';
+    return String(id);
+  }
+
+  tbody.addEventListener('touchstart', e => {
+    if (!isMobileCardTableViewport()) return;
+    if (e.target.closest('button')) return;
+    if (e.touches.length !== 1) {
+      invoiceRowSwipeState = null;
+      return;
+    }
+    const tr = e.target.closest('tr');
+    if (!tr || tr.closest('tbody') !== tbody || tr.classList.contains('row-paid')) {
+      invoiceRowSwipeState = null;
+      return;
+    }
+    const t = e.touches[0];
+    invoiceRowSwipeState = { tr, id: t.identifier, x0: t.clientX, y0: t.clientY };
+  }, { passive: true });
+
+  tbody.addEventListener('touchmove', e => {
+    if (!invoiceRowSwipeState) return;
+    const t = Array.from(e.touches).find(x => x.identifier === invoiceRowSwipeState.id);
+    if (!t) return;
+    const dx = Math.abs(t.clientX - invoiceRowSwipeState.x0);
+    const dy = Math.abs(t.clientY - invoiceRowSwipeState.y0);
+    if (dy > 48 && dy > dx * 1.4) invoiceRowSwipeState = null;
+  }, { passive: true });
+
+  tbody.addEventListener('touchcancel', () => {
+    invoiceRowSwipeState = null;
+  }, { passive: true });
+
+  tbody.addEventListener('touchend', e => {
+    if (!invoiceRowSwipeState) return;
+    const t = Array.from(e.changedTouches).find(x => x.identifier === invoiceRowSwipeState.id);
+    const swipe = invoiceRowSwipeState;
+    invoiceRowSwipeState = null;
+    if (!t || !isMobileCardTableViewport()) return;
+    const dxLeft = swipe.x0 - t.clientX;
+    const dy = swipe.y0 - t.clientY;
+    if (dxLeft < SWIPE_MIN_DX) return;
+    if (Math.abs(dxLeft) < Math.abs(dy) * HORIZONTAL_RATIO) return;
+    if (swipe.tr.classList.contains('row-paid')) return;
+    const id = normId(swipe.tr.dataset.id);
+    if (!id) return;
+    const inv = state.invoices.find(i => normId(i.id) === id);
+    if (inv) {
+      swipe.tr.dataset.suppressNextInvoiceClick = '1';
+      void paySingleInvoice(inv);
+    }
+  }, { passive: true });
+}
+
 async function loadTransferAccounts() {
   const srcSel = document.getElementById('transfer-src-account');
   const dstSel = document.getElementById('transfer-dst-account');
@@ -1411,6 +1548,12 @@ function renderTransferPayments() {
 
   tbody.querySelectorAll('tr').forEach(tr => {
     tr.addEventListener('click', ev => {
+      if (tr.dataset.suppressNextTransferClick === '1') {
+        delete tr.dataset.suppressNextTransferClick;
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
       if (ev.target.tagName === 'INPUT' || ev.target.closest('button')) return;
       const pid = tr.dataset.id;
       const cb = tr.querySelector('.transfer-check');
@@ -1638,6 +1781,8 @@ function bindEvents() {
   // Transfer module actions
   document.getElementById('btn-load-transfer')?.addEventListener('click', loadTransferPayments);
   document.getElementById('btn-transfer-selected')?.addEventListener('click', transferSelectedPayments);
+  bindTransferRowSwipeToTbody();
+  bindInvoiceRowSwipeToTbody();
 
   // Zbaliteľné filtre
   document.getElementById('toggle-filters-invoices')?.addEventListener('click', () => {
