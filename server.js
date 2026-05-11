@@ -92,7 +92,7 @@ app.use((req, res, next) => {
 
 // Vyhnúť sa zastaralému app.js v cache (inak ostane connect() s disabled tlačidlom atď.)
 app.use((req, res, next) => {
-  if (req.method === 'GET' && /\.(?:js|html)$/i.test(req.path)) {
+  if (req.method === 'GET' && /\.(?:js|html|webmanifest)$/i.test(req.path)) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   }
   next();
@@ -111,7 +111,15 @@ app.post('/api/client-debug', express.json({ limit: '64kb' }), (req, res) => {
 });
 
 // Statické súbory (frontend)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('manifest.webmanifest')) {
+        res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      }
+    },
+  })
+);
 
 // Kontrola, či beží náš server (pred proxy)
 app.get('/api/ping', (req, res) => {
