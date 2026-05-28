@@ -873,6 +873,11 @@ td input[type="checkbox"] {
     grid-row: 2;
   }
 
+  .filters-panel-grid--with-status .filter-field-matched {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
   /* Dva rovnako široké stĺpce (účty pri prevode) */
   .filters-panel-grid.filters-panel-grid--two-equal {
     grid-template-columns: 1fr 1fr;
@@ -936,6 +941,21 @@ td input[type="checkbox"] {
 
 .filter-field-status .transfer-status-toggle-group .toggle-btn:last-child {
   border-right: 1px solid var(--border);
+}
+
+.filter-field-matched .filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+  cursor: pointer;
+  min-height: 2.25rem;
+}
+
+.filter-field-matched .filter-checkbox-label input[type="checkbox"] {
+  width: auto;
+  flex-shrink: 0;
 }
 
 /* Stĺpce transfer tabuľky */

@@ -290,11 +290,13 @@ function renderTransferFiltersSummary() {
     : statusValue === 'transferred'
       ? 'Prevedené'
       : '';
+  const hideMatched = document.getElementById('transfer-hide-matched-docs')?.checked;
 
   const parts = [];
   if (partner) parts.push(`Partner: ${partner}`);
   if (dateFrom) parts.push(`Od: ${dateFrom}`);
   if (statusLabel) parts.push(`Stav: ${statusLabel}`);
+  if (hideMatched) parts.push('Bez spárovaných dokladov');
 
   const el = document.getElementById('filters-transfer-summary');
   if (!el) return;
@@ -1181,6 +1183,7 @@ function saveTransferSettings() {
       src: document.getElementById('transfer-src-account')?.value || '',
       dst: document.getElementById('transfer-dst-account')?.value || '',
       dateFrom: document.getElementById('transfer-date-from')?.value || '',
+      hideMatchedDocs: !!document.getElementById('transfer-hide-matched-docs')?.checked,
     };
     localStorage.setItem(STORAGE_TRANSFER, JSON.stringify(o));
   } catch (_) {}
@@ -1326,6 +1329,15 @@ function bindInvoiceRowSwipeToTbody() {
   }, { passive: true });
 }
 
+/** Platba má aspoň jeden spárovaný doklad v matchedDocuments. */
+function paymentHasMatchedDocuments(p) {
+  const docs = p?.matchedDocuments;
+  if (docs == null) return false;
+  if (Array.isArray(docs)) return docs.length > 0;
+  if (typeof docs === 'object') return Object.keys(docs).length > 0;
+  return false;
+}
+
 async function loadTransferAccounts() {
   const srcSel = document.getElementById('transfer-src-account');
   const dstSel = document.getElementById('transfer-dst-account');
@@ -1347,6 +1359,8 @@ async function loadTransferAccounts() {
       if (saved.dst) dstSel.value = saved.dst;
       const transferDateFrom = document.getElementById('transfer-date-from');
       if (transferDateFrom && saved.dateFrom) transferDateFrom.value = saved.dateFrom;
+      const hideMatchedEl = document.getElementById('transfer-hide-matched-docs');
+      if (hideMatchedEl && saved.hideMatchedDocs) hideMatchedEl.checked = true;
     } catch (_) {}
   } catch (e) {
     srcSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
@@ -1443,12 +1457,14 @@ async function loadTransferPayments() {
 function applyTransferFilter() {
   const filterText = (document.getElementById('transfer-partner-filter')?.value || '').trim().toLowerCase();
   const statusFilter = document.querySelector('#transfer-status-filter .toggle-btn-active')?.dataset.value || 'all';
+  const hideMatched = document.getElementById('transfer-hide-matched-docs')?.checked;
 
   transferState.filteredPayments = transferState.payments.filter(p => {
     if (filterText) {
       const partner = (p.partnerName || '').toLowerCase();
       if (!partner.includes(filterText)) return false;
     }
+    if (hideMatched && paymentHasMatchedDocuments(p)) return false;
     if (statusFilter !== 'all') {
       const pid = p._pid || makePaymentKey(p);
       const isTransferred = transferState.transferredIds.has(pid);
@@ -1836,6 +1852,11 @@ function bindEvents() {
   document.getElementById('transfer-date-from')?.addEventListener('change', () => {
     saveTransferSettings();
     loadTransferPayments();
+    renderTransferFiltersSummary();
+  });
+  document.getElementById('transfer-hide-matched-docs')?.addEventListener('change', () => {
+    saveTransferSettings();
+    applyTransferFilter();
     renderTransferFiltersSummary();
   });
 
