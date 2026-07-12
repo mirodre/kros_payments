@@ -20,6 +20,12 @@
   box-sizing: border-box;
 }
 
+/* Atribút [hidden] musí vždy skryť prvok, aj keď má vlastné display pravidlo
+   (napr. .pagination { display: flex }). Bez tohto by el.hidden = true nefungoval. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -951,6 +957,37 @@ td input[type="checkbox"] {
 
 .filter-field-status .transfer-status-toggle-group .toggle-btn:last-child {
   border-right: 1px solid var(--border);
+}
+
+/* Typ dokladu: kompaktný segmentový prepínač, nezaberá celú šírku panela */
+#filter-doc-type {
+  align-self: start;
+  max-width: 100%;
+  background: var(--bg);
+}
+
+#filter-doc-type .toggle-btn {
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* Na úzkej obrazovke roztiahni na plnú šírku s rovnako širokými tlačidlami */
+@media (max-width: 639px) {
+  #filter-doc-type {
+    width: 100%;
+  }
+
+  #filter-doc-type .toggle-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.15;
+    padding: 0.4rem 0.5rem;
+  }
 }
 
 .filter-field-matched .filter-checkbox-label {
