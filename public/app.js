@@ -273,6 +273,17 @@ function getInvoiceDocTypeFilter() {
   return document.querySelector('#filter-doc-type .toggle-btn-active')?.dataset.value || 'all';
 }
 
+/** Nastaví aktívne tlačidlo prepínača typu dokladu podľa hodnoty. */
+function setInvoiceDocTypeFilter(value) {
+  const group = document.getElementById('filter-doc-type');
+  if (!group) return;
+  const target = group.querySelector(`.toggle-btn[data-value="${value}"]`)
+    || group.querySelector('.toggle-btn[data-value="all"]');
+  if (!target) return;
+  group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('toggle-btn-active'));
+  target.classList.add('toggle-btn-active');
+}
+
 function renderInvoicesFiltersSummary() {
   const seq = (document.getElementById('filter-sequence')?.value || '').trim();
   const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
@@ -317,6 +328,7 @@ function saveSettings() {
     const el = document.getElementById(id);
     if (el && el.value != null) o[id] = el.value;
   });
+  o.docType = getInvoiceDocTypeFilter();
 
   try {
     localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(o));
@@ -336,6 +348,7 @@ function restoreSettings() {
       const sel = document.getElementById('account');
       if (sel && o.account !== '') sel.value = o.account;
     }
+    if (o.docType != null) setInvoiceDocTypeFilter(o.docType);
   } catch (_) {}
 }
 
@@ -1775,6 +1788,7 @@ function bindEvents() {
       if (btn.classList.contains('toggle-btn-active')) return;
       document.querySelectorAll('#filter-doc-type .toggle-btn').forEach(b => b.classList.remove('toggle-btn-active'));
       btn.classList.add('toggle-btn-active');
+      saveSettings();
       loadInvoices(0);
       renderInvoicesFiltersSummary();
     });
