@@ -948,7 +948,9 @@ function renderInvoices() {
     const dueDate = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('sk-SK') : '—';
     const vs = inv.variableSymbol || '—';
     const docLine1 = [inv.numberingSequence, inv.documentNumber].filter(Boolean).join(' ') || '—';
-    const expenseBadge = inv.isExpense ? ' <span class="badge badge-expense">Výdavok</span>' : '';
+    const typeBadge = inv.isExpense
+      ? ' <span class="badge badge-expense">Výdavok</span>'
+      : ' <span class="badge badge-invoice">Faktúra</span>';
     const forPayment = Number(inv.sumForPayment ?? inv.prices?.documentPrices?.totalPriceInclVat ?? 0);
     const sumDocLine = docTotal > 0 ? `${docTotal.toFixed(2)} ${docCurrency}` : '—';
     const sumTooltip = `sumForPayment: ${forPayment.toFixed(2)} | sumOfPayments: ${docPaid.toFixed(2)} | Rozdiel (na úhradu): ${sumLegislative.toFixed(2)} €`;
@@ -956,7 +958,7 @@ function renderInvoices() {
       <tr class="${checked ? 'selected' : ''}" data-id="${inv.id}">
         <td class="col-check"><input type="checkbox" class="inv-check" data-id="${inv.id}" ${checked ? 'checked' : ''}></td>
         <td class="col-doc" title="${escapeHtml(partnerName)}">
-          <span class="cell-l1">${escapeHtml(docLine1)}${expenseBadge}</span>
+          <span class="cell-l1">${escapeHtml(docLine1)}${typeBadge}</span>
           <span class="cell-l2 cell-truncate">${escapeHtml(partnerName)}</span>
         </td>
         <td class="col-dates">

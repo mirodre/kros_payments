@@ -531,6 +531,11 @@ td input[type="checkbox"] {
   color: #c2410c;
 }
 
+.badge-invoice {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
 .loading, .empty-state {
   padding: 2rem;
   text-align: center;
