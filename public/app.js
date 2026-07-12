@@ -268,12 +268,20 @@ function setFiltersCollapsibleState(panelId, toggleButtonId, expanded) {
   btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 }
 
+/** Vráti zvolený typ dokladu z filtra: 'all' | 'invoices' | 'expenses'. */
+function getInvoiceDocTypeFilter() {
+  return document.querySelector('#filter-doc-type .toggle-btn-active')?.dataset.value || 'all';
+}
+
 function renderInvoicesFiltersSummary() {
   const seq = (document.getElementById('filter-sequence')?.value || '').trim();
   const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
+  const docType = getInvoiceDocTypeFilter();
   const parts = [];
   if (seq) parts.push(`Rad: ${seq}`);
   if (dateFrom) parts.push(`Od: ${dateFrom}`);
+  if (docType === 'invoices') parts.push('Iba faktúry');
+  else if (docType === 'expenses') parts.push('Iba výdavky');
 
   const el = document.getElementById('filters-invoices-summary');
   if (!el) return;
@@ -795,60 +803,6 @@ function normalizeExpense(exp) {
   };
 }
 
-async function handleImportFile() {
-  const input = document.getElementById('input-import-file');
-  const file = input?.files?.[0];
-  const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
-  const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
-  if (!file) return;
-  document.getElementById('invoices-loading').hidden = false;
-  document.getElementById('invoices-table-wrap').hidden = true;
-  document.getElementById('invoices-empty').hidden = true;
-  document.getElementById('pagination').hidden = true;
-  const formData = new FormData();
-  formData.append('file', file);
-  try {
-    const params = new URLSearchParams();
-    if (sequence) params.set('NumberingSequence', sequence);
-    if (dateFrom) params.set('DateFrom', dateFrom);
-    const importUrl = '/api/import/invoices' + (params.toString() ? `?${params.toString()}` : '');
-    const res = await fetch(importUrl, {
-      method: 'POST',
-      body: formData,
-      headers: getAuthHeaders().Authorization ? { 'Authorization': getAuthHeaders().Authorization } : {},
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || res.statusText || 'Chyba importu');
-    }
-    const list = data?.data || [];
-    state.invoices = list;
-    state.selectedIds.clear();
-    renderInvoices();
-    document.getElementById('invoices-loading').hidden = true;
-    if (state.invoices.length === 0) {
-      document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = (sequence || dateFrom)
-        ? 'Žiadna položka nevyhovuje zadaným filtrom.'
-        : 'V súbore neboli žiadne platné riadky.';
-    } else {
-      document.getElementById('invoices-table-wrap').hidden = false;
-    }
-    const wrap = document.getElementById('pagination');
-    wrap.hidden = true;
-    wrap.innerHTML = '';
-    const info = document.createElement('span');
-    info.textContent = `Načítaných ${state.invoices.length} dokladov zo súboru.`;
-    wrap.appendChild(info);
-    wrap.hidden = false;
-  } catch (e) {
-    document.getElementById('invoices-loading').hidden = true;
-    document.getElementById('invoices-empty').hidden = false;
-    document.getElementById('invoices-empty').textContent = 'Chyba: ' + (e.message || 'import zlyhal.');
-  }
-  input.value = '';
-}
-
 async function loadInvoices(skip = 0) {
   const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
   const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
@@ -869,6 +823,10 @@ async function loadInvoices(skip = 0) {
   if (sequence) expenseParams.set('NumberingSequence', sequence);
   if (dateFrom) expenseParams.set('IssueDateFrom', dateFrom);
 
+  const docType = getInvoiceDocTypeFilter();
+  const wantInvoices = docType !== 'expenses';
+  const wantExpenses = docType !== 'invoices';
+
   document.getElementById('invoices-loading').hidden = false;
   document.getElementById('invoices-table-wrap').hidden = true;
   document.getElementById('invoices-empty').hidden = true;
@@ -876,13 +834,17 @@ async function loadInvoices(skip = 0) {
 
   try {
     const [invRes, expRes] = await Promise.all([
-      apiCall('/api/invoices?' + params.toString(), { method: 'GET' }),
-      apiCall('/api/expenses?' + expenseParams.toString(), { method: 'GET' }).catch((e) => {
-        if (e.status === 401) throw e;
-        // Výdavky nemusia byť dostupné (napr. modul bez výdavkov) – faktúry zobrazíme aj tak.
-        appendApiLog('  Výdavky sa nepodarilo načítať: ' + (e.message || e.status));
-        return null;
-      }),
+      wantInvoices
+        ? apiCall('/api/invoices?' + params.toString(), { method: 'GET' })
+        : Promise.resolve(null),
+      wantExpenses
+        ? apiCall('/api/expenses?' + expenseParams.toString(), { method: 'GET' }).catch((e) => {
+            if (e.status === 401) throw e;
+            // Výdavky nemusia byť dostupné (napr. modul bez výdavkov) – faktúry zobrazíme aj tak.
+            appendApiLog('  Výdavky sa nepodarilo načítať: ' + (e.message || e.status));
+            return null;
+          })
+        : Promise.resolve(null),
     ]);
     const invList = invRes?.data || [];
     const expList = (expRes?.data || []).map(normalizeExpense);
@@ -894,7 +856,7 @@ async function loadInvoices(skip = 0) {
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0 && !hasMore) {
       document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = (sequence || dateFrom)
+      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || docType !== 'all')
         ? 'Žiadny doklad nevyhovuje zadaným filtrom.'
         : 'Žiadne neuhradené faktúry ani výdavky.';
     } else {
@@ -1781,8 +1743,6 @@ function bindEvents() {
 
   // Prepojiť s KROS: listener je na #app (capture) v ensureKrosConnectClickHandler().
   document.getElementById('btn-load-invoices').addEventListener('click', () => loadInvoices(0));
-  document.getElementById('btn-load-from-file').addEventListener('click', () => document.getElementById('input-import-file').click());
-  document.getElementById('input-import-file').addEventListener('change', handleImportFile);
 
   document.getElementById('btn-submit-payments').addEventListener('click', submitPayments);
 
@@ -1808,6 +1768,16 @@ function bindEvents() {
     saveSettings();
     loadInvoices(0);
     renderInvoicesFiltersSummary();
+  });
+
+  document.getElementById('filter-doc-type')?.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('toggle-btn-active')) return;
+      document.querySelectorAll('#filter-doc-type .toggle-btn').forEach(b => b.classList.remove('toggle-btn-active'));
+      btn.classList.add('toggle-btn-active');
+      loadInvoices(0);
+      renderInvoicesFiltersSummary();
+    });
   });
 
   document.getElementById('account')?.addEventListener('change', () => { updateSelectedCount(); saveSettings(); });

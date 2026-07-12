@@ -94,6 +94,14 @@
               <label for="filter-date-from" class="sf-label">Obdobie od</label>
               <input type="date" id="filter-date-from">
             </div>
+            <div class="filter-field filter-field-status">
+              <span class="sf-label" id="filter-doc-type-label">Typ dokladu</span>
+              <div class="toggle-group" id="filter-doc-type" role="group" aria-labelledby="filter-doc-type-label">
+                <button type="button" class="toggle-btn toggle-btn-active" data-value="all">Faktúry aj výdavky</button>
+                <button type="button" class="toggle-btn" data-value="invoices">Iba faktúry</button>
+                <button type="button" class="toggle-btn" data-value="expenses">Iba výdavky</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -103,10 +111,7 @@
         <div class="table-header">
           <h2>Zoznam dokladov</h2>
           <div class="table-actions">
-            <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať neuhradené faktúry a výdavky</button>
-            <button type="button" id="btn-load-from-file" class="btn btn-secondary btn-sm">Načítať zo súboru</button>
-            <input type="file" id="input-import-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-
+            <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať doklady</button>
             <span id="selected-count" class="muted"></span>
           </div>
         </div>

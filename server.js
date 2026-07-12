@@ -4,12 +4,10 @@
  */
 
 import express from 'express';
-import multer from 'multer';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Vždy production Open API (bez prepínania test/prod).
@@ -137,67 +135,6 @@ app.get('/kros/callback', (req, res) => {
   res.redirect('/');
 });
 
-// Import dokladov zo XLSX (štruktúra ako import_dokladov_example.xlsx)
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
-const COL = {
-  druhDokladu: 0,
-  cisloDokladu: 3,
-  partner: 8,
-  datumVystavenia: 21,
-  datumSplatnosti: 22,
-  naUhradu: 30,
-  mena: 31,
-  vs: 37,
-};
-
-function excelDateToISO(value) {
-  if (value == null || value === '') return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  const d = new Date((n - 25569) * 86400 * 1000);
-  return Number.isFinite(d.getTime()) ? d.toISOString().slice(0, 10) : null;
-}
-
-function parseImportXlsx(buffer) {
-  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', rawNumbers: true });
-  if (rows.length < 2) return [];
-  const out = [];
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    const druh = String(row[COL.druhDokladu] ?? '').trim();
-    const cislo = row[COL.cisloDokladu] != null ? String(row[COL.cisloDokladu]) : '';
-    const partnerName = String(row[COL.partner] ?? '').trim();
-    const naUhraduRaw = row[COL.naUhradu];
-    const num = Number(naUhraduRaw);
-    if (!Number.isFinite(num) || num === 0) continue;
-    const isDosla = /došlá\s*faktúra/i.test(druh);
-    const sumForPayment = isDosla ? -1 * num : num;
-    const issueDate = excelDateToISO(row[COL.datumVystavenia]) || new Date().toISOString().slice(0, 10);
-    const dueDate = excelDateToISO(row[COL.datumSplatnosti]) || issueDate;
-    const mena = (String(row[COL.mena] ?? 'EUR').trim()) || 'EUR';
-    const vs = row[COL.vs] != null ? String(row[COL.vs]).trim() : '';
-    out.push({
-      id: 'import-' + i,
-      documentNumber: cislo,
-      numberingSequence: '',
-      issueDate,
-      dueDate,
-      variableSymbol: vs,
-      partner: { address: { businessName: partnerName } },
-      sumForPayment,
-      sumOfPayments: 0,
-      prices: {
-        currency: mena,
-        documentPrices: { totalPriceInclVat: sumForPayment },
-        legislativePrices: { totalPriceInclVat: sumForPayment },
-      },
-    });
-  }
-  return out;
-}
-
 function normalizeSequence(value) {
   return String(value ?? '').trim().toLowerCase();
 }
@@ -260,22 +197,6 @@ function buildForwardParams(query, excludedKeys = []) {
   }
   return params;
 }
-
-app.post('/api/import/invoices', upload.single('file'), (req, res) => {
-  if (!req.file || !req.file.buffer) {
-    return res.status(400).json({ error: 'Chýba súbor. Vyberte XLSX súbor.' });
-  }
-  try {
-    const sequence = req.query.NumberingSequence || req.query.numberingSequence || req.query.sequence || '';
-    const dateRange = readDateRange(req.query);
-    let data = parseImportXlsx(req.file.buffer);
-    data = filterByNumberingSequence(data, sequence);
-    data = filterByDateRange(data, dateRange, (item) => item?.issueDate);
-    res.json({ data });
-  } catch (err) {
-    res.status(400).json({ error: 'Nepodarilo sa spracovať súbor: ' + (err.message || String(err)) });
-  }
-});
 
 // Dedikovaná obsluha POST /api/payments/batch – 3 pokusy s backoff pri 408/timeout
 const PAYMENTS_BATCH_TIMEOUT_MS = 180000; // 180 s
