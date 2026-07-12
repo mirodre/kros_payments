@@ -62,7 +62,7 @@
       <header class="main-header">
         <div style="display:flex;align-items:center;gap:0.75rem;">
           <button type="button" id="btn-back-invoices" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
-          <h1>Neuhradené faktúry</h1>
+          <h1>Neuhradené faktúry a výdavky</h1>
         </div>
         <div class="header-actions">
           <span id="active-company-label-main" class="muted"></span>
@@ -101,17 +101,17 @@
       <!-- Tabuľka faktúr -->
       <div class="panel">
         <div class="table-header">
-          <h2>Zoznam faktúr</h2>
+          <h2>Zoznam dokladov</h2>
           <div class="table-actions">
-            <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať neuhradené faktúry</button>
+            <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať neuhradené faktúry a výdavky</button>
             <button type="button" id="btn-load-from-file" class="btn btn-secondary btn-sm">Načítať zo súboru</button>
             <input type="file" id="input-import-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 
             <span id="selected-count" class="muted"></span>
           </div>
         </div>
-        <div id="invoices-loading" class="loading" hidden>Načítavam faktúry…</div>
-        <div id="invoices-empty" class="empty-state" hidden>Načítajte faktúry alebo nemáte žiadne neuhradené.</div>
+        <div id="invoices-loading" class="loading" hidden>Načítavam faktúry a výdavky…</div>
+        <div id="invoices-empty" class="empty-state" hidden>Načítajte doklady alebo nemáte žiadne neuhradené.</div>
         <div id="invoices-table-wrap" class="table-wrap" hidden>
           <table id="invoices-table" class="invoices-table">
             <thead>
@@ -136,7 +136,7 @@
       <!-- Uhradiť vybrané -->
       <div class="panel">
         <div class="pay-actions-row">
-          <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané faktúry</button>
+          <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané doklady</button>
         </div>
         <div id="submit-result" class="result-box" hidden></div>
       </div>

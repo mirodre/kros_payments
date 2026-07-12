@@ -775,6 +775,24 @@ function getSumForPaymentLegislative(inv) {
   return roundCurrency((docSum / docTotal) * legTotal);
 }
 
+/**
+ * Prevedie výdavok (/api/expenses) na tvar dokladu ako faktúra.
+ * Suma na úhradu je záporná – odchádzajúca platba, rovnaká konvencia ako došlé faktúry z XLSX importu.
+ * ExpenseResponse nemá variableSymbol ani numberingSequence; ako VS/referenciu použijeme číslo dokladu dodávateľa.
+ */
+function normalizeExpense(exp) {
+  const docTotal = Number(exp?.prices?.documentPrices?.totalPriceInclVat ?? 0);
+  const paid = Number(exp?.sumOfPayments ?? 0);
+  return {
+    ...exp,
+    isExpense: true,
+    numberingSequence: exp.numberingSequence || '',
+    variableSymbol: exp.variableSymbol || exp.documentNumber || '',
+    sumForPayment: -docTotal,
+    sumOfPayments: -paid,
+  };
+}
+
 async function handleImportFile() {
   const input = document.getElementById('input-import-file');
   const file = input?.files?.[0];
@@ -840,24 +858,43 @@ async function loadInvoices(skip = 0) {
   if (sequence) params.set('NumberingSequence', sequence);
   if (dateFrom) params.set('DateFrom', dateFrom);
 
+  // Výdavky: KROS API podporuje NumberingSequence aj IssueDateFrom natívne.
+  const expenseParams = new URLSearchParams({
+    PaymentStatus: '0',
+    Top: '100',
+    Skip: String(skip),
+  });
+  if (sequence) expenseParams.set('NumberingSequence', sequence);
+  if (dateFrom) expenseParams.set('IssueDateFrom', dateFrom);
+
   document.getElementById('invoices-loading').hidden = false;
   document.getElementById('invoices-table-wrap').hidden = true;
   document.getElementById('invoices-empty').hidden = true;
   document.getElementById('pagination').hidden = true;
 
   try {
-    const res = await apiCall('/api/invoices?' + params.toString(), { method: 'GET' });
-    const list = res?.data || [];
+    const [invRes, expRes] = await Promise.all([
+      apiCall('/api/invoices?' + params.toString(), { method: 'GET' }),
+      apiCall('/api/expenses?' + expenseParams.toString(), { method: 'GET' }).catch((e) => {
+        if (e.status === 401) throw e;
+        // Výdavky nemusia byť dostupné (napr. modul bez výdavkov) – faktúry zobrazíme aj tak.
+        appendApiLog('  Výdavky sa nepodarilo načítať: ' + (e.message || e.status));
+        return null;
+      }),
+    ]);
+    const invList = invRes?.data || [];
+    const expList = (expRes?.data || []).map(normalizeExpense);
+    const list = invList.concat(expList);
     if (skip === 0) state.invoices = list;
     else state.invoices = state.invoices.concat(list);
     renderInvoices();
-    const hasMore = list.length === 100;
+    const hasMore = invList.length === 100 || expList.length === 100;
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0 && !hasMore) {
       document.getElementById('invoices-empty').hidden = false;
       document.getElementById('invoices-empty').textContent = (sequence || dateFrom)
-        ? 'Žiadna faktúra nevyhovuje zadaným filtrom.'
-        : 'Žiadne neuhradené faktúry.';
+        ? 'Žiadny doklad nevyhovuje zadaným filtrom.'
+        : 'Žiadne neuhradené faktúry ani výdavky.';
     } else {
       document.getElementById('invoices-table-wrap').hidden = false;
     }
@@ -885,7 +922,7 @@ function renderPagination(skip, hasMore) {
     wrap.appendChild(prev);
   }
   const info = document.createElement('span');
-  info.textContent = `Načítaných ${state.invoices.length} faktúr.`;
+  info.textContent = `Načítaných ${state.invoices.length} dokladov.`;
   wrap.appendChild(info);
   if (hasMore) {
     const next = document.createElement('button');
@@ -909,6 +946,7 @@ function renderInvoices() {
     const dueDate = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('sk-SK') : '—';
     const vs = inv.variableSymbol || '—';
     const docLine1 = [inv.numberingSequence, inv.documentNumber].filter(Boolean).join(' ') || '—';
+    const expenseBadge = inv.isExpense ? ' <span class="badge badge-expense">Výdavok</span>' : '';
     const forPayment = Number(inv.sumForPayment ?? inv.prices?.documentPrices?.totalPriceInclVat ?? 0);
     const sumDocLine = docTotal > 0 ? `${docTotal.toFixed(2)} ${docCurrency}` : '—';
     const sumTooltip = `sumForPayment: ${forPayment.toFixed(2)} | sumOfPayments: ${docPaid.toFixed(2)} | Rozdiel (na úhradu): ${sumLegislative.toFixed(2)} €`;
@@ -916,7 +954,7 @@ function renderInvoices() {
       <tr class="${checked ? 'selected' : ''}" data-id="${inv.id}">
         <td class="col-check"><input type="checkbox" class="inv-check" data-id="${inv.id}" ${checked ? 'checked' : ''}></td>
         <td class="col-doc" title="${escapeHtml(partnerName)}">
-          <span class="cell-l1">${escapeHtml(docLine1)}</span>
+          <span class="cell-l1">${escapeHtml(docLine1)}${expenseBadge}</span>
           <span class="cell-l2 cell-truncate">${escapeHtml(partnerName)}</span>
         </td>
         <td class="col-dates">
@@ -1057,7 +1095,7 @@ async function paySingleInvoice(inv) {
     const res = await apiCall('/api/payments/batch', { method: 'POST', body: { data } });
     const requestId = res?.requestId || '';
     showResult('submit-result',
-      `Platba pre faktúru ${inv.documentNumber || inv.id} odoslaná (202). RequestId: ${requestId}.`,
+      `Platba pre doklad ${inv.documentNumber || inv.id} odoslaná (202). RequestId: ${requestId}.`,
       'success');
     if (btn) {
       btn.textContent = '✓ Uhradené';
@@ -1094,7 +1132,7 @@ async function submitPayments() {
   }
   const toPay = state.invoices.filter(inv => state.selectedIds.has(String(inv.id)));
   if (toPay.length === 0) {
-    showResult('submit-result', 'Nevybrali ste žiadnu faktúru.', 'error');
+    showResult('submit-result', 'Nevybrali ste žiadny doklad.', 'error');
     return;
   }
   const data = toPay.map(inv => {

@@ -526,6 +526,11 @@ td input[type="checkbox"] {
   color: var(--success);
 }
 
+.badge-expense {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
 .loading, .empty-state {
   padding: 2rem;
   text-align: center;
