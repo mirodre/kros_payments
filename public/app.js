@@ -771,7 +771,9 @@ function getSumForPaymentLegislative(inv) {
   const docSum = getSumForPayment(inv);
   const docTotal = Number(inv.prices?.documentPrices?.totalPriceInclVat ?? 0);
   const legTotal = Number(inv.prices?.legislativePrices?.totalPriceInclVat ?? 0);
-  if (docTotal <= 0) return roundCurrency(docSum);
+  // Výdavky (/api/expenses) často nemajú vyplnené legislativePrices → legTotal = 0.
+  // Pri domácej mene je legislatívna suma rovná sume dokladu, tak sa vrátime k docSum.
+  if (docTotal <= 0 || !(legTotal > 0)) return roundCurrency(docSum);
   return roundCurrency((docSum / docTotal) * legTotal);
 }
 
