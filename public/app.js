@@ -10,8 +10,6 @@ const STORAGE_KROS_PENDING_STATE = 'platforma_uhrady_kros_pending_state';
 const STORAGE_KROS_CONNECTIONS = 'platforma_uhrady_kros_connections';
 const STORAGE_KROS_SELECTED_COMPANY_ID = 'platforma_uhrady_kros_selected_company_id';
 const KROS_PRODUCTION_API_BASE = 'https://api-economy.kros.sk';
-/** Voľba „(Nedefinovaný bankový účet)“ – úhrada prebehne, ale accountId sa do KROS API neposiela. */
-const UNDEFINED_ACCOUNT_VALUE = 'undefined-account';
 
 let state = {
   token: '',
@@ -140,6 +138,23 @@ async function initKrosCallbacks() {
  *   status, requestId }  – status 200 = OK, 207 = časť sa nepodarila.
  * Ak príde iný tvar, spadneme na heuristické hľadanie textov s chybou.
  */
+function describeEntityStatus(status, entity) {
+  const vs = entity?.data?.variableSymbol;
+  const vsPart = vs ? ` s variabilným symbolom ${vs}` : '';
+  switch (status) {
+    case 404:
+      return `doklad${vsPart} sa v KROSe nenašiel – úhradu nebolo k čomu priradiť.`;
+    case 409:
+      return `doklad${vsPart} sa nedá jednoznačne identifikovať (viac dokladov s rovnakým VS).`;
+    case 423:
+      return `doklad${vsPart} je zamknutý, nedá sa upraviť.`;
+    case 402:
+      return 'nedostatočná alebo vypršaná licencia firmy.';
+    default:
+      return `doklad${vsPart} skončil so stavom ${status}.`;
+  }
+}
+
 function summarizeKrosCallback(payload) {
   const problems = [];
   if (payload && typeof payload === 'object') {
@@ -151,6 +166,12 @@ function summarizeKrosCallback(payload) {
           const text = [p?.title, p?.detail].filter(Boolean).join(' – ');
           problems.push(`doklad #${idx}: ${text || JSON.stringify(p)}`);
         });
+        // Pozor: hlavičkový status môže byť 200, aj keď jednotlivá entita zlyhala
+        // (napr. 404 s prázdnym `problems`) – dôvod je len v jej `status`.
+        const entityStatus = Number(entity?.status);
+        if (Number.isFinite(entityStatus) && (entityStatus < 200 || entityStatus > 299)) {
+          problems.push(`doklad #${idx}: ${describeEntityStatus(entityStatus, entity)}`);
+        }
       });
     }
   }
@@ -913,7 +934,7 @@ async function loadAccounts() {
     state.accounts = list;
     sel.innerHTML = '<option value="">— vyberte účet —</option>' + list.map(a =>
       `<option value="${a.id}">${escapeHtml(a.name || 'Účet')} ${a.iban ? ' • ' + a.iban : ''} (${a.currency || 'EUR'})</option>`
-    ).join('') + `<option value="${UNDEFINED_ACCOUNT_VALUE}">(Nedefinovaný bankový účet)</option>`;
+    ).join('');
     const saved = (() => { try { const r = localStorage.getItem(STORAGE_SETTINGS); return r ? JSON.parse(r) : null; } catch (_) { return null; } })();
     if (saved?.account) sel.value = saved.account;
   } catch (e) {
@@ -1231,9 +1252,8 @@ async function paySingleInvoice(inv) {
     originalCurrency: docCurrency,
     variableSymbol: vsPay,
     partnerName: partnerName || undefined,
+    accountId: Number(accountId),
   };
-  // Pri „(Nedefinovaný bankový účet)“ sa accountId do KROS API neposiela.
-  if (accountId !== UNDEFINED_ACCOUNT_VALUE) paymentItem.accountId = Number(accountId);
   if (refPay !== undefined) paymentItem.paymentReference = refPay;
   const data = [paymentItem];
   document.getElementById('submit-result').hidden = true;
@@ -1302,9 +1322,8 @@ async function submitPayments() {
       originalCurrency: docCurrency,
       variableSymbol: vsPay,
       partnerName: partnerName || undefined,
+      accountId: Number(accountId),
     };
-    // Pri „(Nedefinovaný bankový účet)“ sa accountId do KROS API neposiela.
-    if (accountId !== UNDEFINED_ACCOUNT_VALUE) item.accountId = Number(accountId);
     if (refPay !== undefined) item.paymentReference = refPay;
     return item;
   });
