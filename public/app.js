@@ -10,6 +10,8 @@ const STORAGE_KROS_PENDING_STATE = 'platforma_uhrady_kros_pending_state';
 const STORAGE_KROS_CONNECTIONS = 'platforma_uhrady_kros_connections';
 const STORAGE_KROS_SELECTED_COMPANY_ID = 'platforma_uhrady_kros_selected_company_id';
 const KROS_PRODUCTION_API_BASE = 'https://api-economy.kros.sk';
+/** Voľba „(Nedefinovaný bankový účet)“ – úhrada prebehne, ale accountId sa do KROS API neposiela. */
+const UNDEFINED_ACCOUNT_VALUE = 'undefined-account';
 
 let state = {
   token: '',
@@ -742,7 +744,7 @@ async function loadAccounts() {
     state.accounts = list;
     sel.innerHTML = '<option value="">— vyberte účet —</option>' + list.map(a =>
       `<option value="${a.id}">${escapeHtml(a.name || 'Účet')} ${a.iban ? ' • ' + a.iban : ''} (${a.currency || 'EUR'})</option>`
-    ).join('');
+    ).join('') + `<option value="${UNDEFINED_ACCOUNT_VALUE}">(Nedefinovaný bankový účet)</option>`;
     const saved = (() => { try { const r = localStorage.getItem(STORAGE_SETTINGS); return r ? JSON.parse(r) : null; } catch (_) { return null; } })();
     if (saved?.account) sel.value = saved.account;
   } catch (e) {
@@ -1058,8 +1060,9 @@ async function paySingleInvoice(inv) {
     originalCurrency: docCurrency,
     variableSymbol: vsPay,
     partnerName: partnerName || undefined,
-    accountId: Number(accountId),
   };
+  // Pri „(Nedefinovaný bankový účet)“ sa accountId do KROS API neposiela.
+  if (accountId !== UNDEFINED_ACCOUNT_VALUE) paymentItem.accountId = Number(accountId);
   if (refPay !== undefined) paymentItem.paymentReference = refPay;
   const data = [paymentItem];
   document.getElementById('submit-result').hidden = true;
@@ -1127,8 +1130,9 @@ async function submitPayments() {
       originalCurrency: docCurrency,
       variableSymbol: vsPay,
       partnerName: partnerName || undefined,
-      accountId: Number(accountId),
     };
+    // Pri „(Nedefinovaný bankový účet)“ sa accountId do KROS API neposiela.
+    if (accountId !== UNDEFINED_ACCOUNT_VALUE) item.accountId = Number(accountId);
     if (refPay !== undefined) item.paymentReference = refPay;
     return item;
   });
