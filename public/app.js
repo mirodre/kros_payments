@@ -1,5 +1,5 @@
 /**
- * Platforma úhrady – frontend logika
+ * Financie – frontend logika
  */
 
 const STORAGE_TOKEN = 'platforma_uhrady_token';

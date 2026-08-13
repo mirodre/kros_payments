@@ -121,7 +121,7 @@ app.use(
 
 // Kontrola, či beží náš server (pred proxy)
 app.get('/api/ping', (req, res) => {
-  res.json({ ok: true, message: 'Platforma úhrady – server beží.' });
+  res.json({ ok: true, message: 'Financie – server beží.' });
 });
 
 app.post('/kros/callback', (req, res) => {
@@ -543,7 +543,7 @@ let retryTimer = null;
 function startServer() {
   const server = app.listen(PORT, () => {
     retryTimer = null;
-    console.log(`Platforma úhrady beží na http://localhost:${PORT}`);
+    console.log(`Financie beží na http://localhost:${PORT}`);
     console.log(`Predvolená KROS API: ${DEFAULT_API_BASE}`);
   });
 

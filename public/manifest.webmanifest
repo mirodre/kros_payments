@@ -1,6 +1,6 @@
 {
-  "name": "Platforma úhrady – KROS",
-  "short_name": "Úhrady",
+  "name": "Financie – KROS",
+  "short_name": "Financie",
   "description": "Neuhradené faktúry a platby cez KROS Open API",
   "start_url": "/",
   "scope": "/",
