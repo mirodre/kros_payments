@@ -804,16 +804,18 @@ function getSumForPaymentLegislative(inv) {
  * Prevedie výdavok (/api/expenses) na tvar dokladu ako faktúra.
  * Suma na úhradu je záporná – odchádzajúca platba, rovnaká konvencia ako došlé faktúry z XLSX importu.
  * ExpenseResponse nemá variableSymbol ani numberingSequence; ako VS/referenciu použijeme číslo dokladu dodávateľa.
+ * Sumy na úhradu a uhradené nie sú na koreni dokladu ako pri faktúre, ale v prices.documentPrices.
  */
 function normalizeExpense(exp) {
-  const docTotal = Number(exp?.prices?.documentPrices?.totalPriceInclVat ?? 0);
-  const paid = Number(exp?.sumOfPayments ?? 0);
+  const docPrices = exp?.prices?.documentPrices || {};
+  const forPayment = Number(docPrices.sumForPayment ?? docPrices.totalPriceInclVat ?? 0);
+  const paid = Number(docPrices.sumOfPayments ?? 0);
   return {
     ...exp,
     isExpense: true,
     numberingSequence: exp.numberingSequence || '',
     variableSymbol: exp.variableSymbol || exp.documentNumber || '',
-    sumForPayment: -docTotal,
+    sumForPayment: -forPayment,
     sumOfPayments: -paid,
   };
 }
