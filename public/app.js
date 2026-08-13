@@ -85,8 +85,166 @@ function appendApiLog(entry, logId = 'api-log') {
   el.scrollTop = el.scrollHeight;
 }
 
+/** Viacriadkový blok (napr. JSON) – bez časovej pečiatky na každom riadku. */
+function appendApiLogBlock(text, logId = 'api-log') {
+  const el = document.getElementById(logId);
+  if (!el) return;
+  const block = String(text).split('\n').map(line => '    ' + line).join('\n');
+  el.textContent = (el.textContent ? el.textContent + '\n' : '') + block;
+  el.scrollTop = el.scrollHeight;
+}
+
 function appendTransferApiLog(entry) {
   appendApiLog(entry, 'transfer-api-log');
+}
+
+/* ------------------------------------------------------------------
+ * Webhook s výsledkom platieb: POST /api/payments/batch vráti len 202,
+ * dôvod neúspechu príde asynchrónne na callback URL. Server ho uloží,
+ * my si ho tu vyzdvihneme a vypíšeme do „Log API volaní“.
+ * ------------------------------------------------------------------ */
+const CALLBACK_POLL_INTERVAL_MS = 3000;
+const CALLBACK_POLL_WINDOW_MS = 5 * 60 * 1000;
+let lastCallbackSeq = 0;
+let callbackPollTimer = null;
+let callbackPollUntil = 0;
+let callbackSeenInWindow = 0;
+
+async function fetchKrosCallbacks() {
+  const res = await fetch('/api/kros-callbacks?sinceSeq=' + lastCallbackSeq, {
+    headers: { 'Accept': 'application/json' },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+/** Po štarte len zosynchronizuje pozíciu (staré callbacky do logu nesypeme). */
+async function initKrosCallbacks() {
+  try {
+    const data = await fetchKrosCallbacks();
+    lastCallbackSeq = Number(data.lastSeq) || 0;
+    if (data.callbackUrl) {
+      const httpsOk = String(data.callbackUrl).startsWith('https://');
+      appendApiLog('Webhook pre výsledky platieb: ' + data.callbackUrl +
+        (httpsOk
+          ? ' (registruje sa v KROSe pri prepojení)'
+          : ' – POZOR: KROS prijíma len HTTPS, pri prepojení sa neregistruje.'));
+    }
+  } catch (_) {}
+}
+
+/**
+ * Rozoberie notifikáciu podľa dokumentovaného tvaru KROS webhooku:
+ * { companyId, results: { entities: [{ index, status, problems: [{ title, detail }] }] },
+ *   status, requestId }  – status 200 = OK, 207 = časť sa nepodarila.
+ * Ak príde iný tvar, spadneme na heuristické hľadanie textov s chybou.
+ */
+function summarizeKrosCallback(payload) {
+  const problems = [];
+  if (payload && typeof payload === 'object') {
+    const entities = payload.results?.entities;
+    if (Array.isArray(entities)) {
+      entities.forEach((entity, i) => {
+        const idx = entity?.index ?? i;
+        (entity?.problems || []).forEach(p => {
+          const text = [p?.title, p?.detail].filter(Boolean).join(' – ');
+          problems.push(`doklad #${idx}: ${text || JSON.stringify(p)}`);
+        });
+      });
+    }
+  }
+  if (!problems.length) {
+    const visit = (node) => {
+      if (node == null || typeof node !== 'object') return;
+      if (Array.isArray(node)) return node.forEach(visit);
+      for (const [key, value] of Object.entries(node)) {
+        if (typeof value === 'string' && value.trim() &&
+            /(errormessage|errordescription|detail|reason|title)/.test(key.toLowerCase())) {
+          problems.push(value.trim());
+        } else if (typeof value === 'object') {
+          visit(value);
+        }
+      }
+    };
+    visit(payload);
+  }
+  const status = Number(payload?.status);
+  return {
+    status: Number.isFinite(status) ? status : null,
+    requestId: payload?.requestId ? String(payload.requestId) : '',
+    problems,
+    ok: status === 200 && problems.length === 0,
+  };
+}
+
+function logKrosCallback(item) {
+  const info = summarizeKrosCallback(item.body);
+  const head = [
+    `◆ Callback z KROS #${item.seq} (${new Date(item.receivedAt).toLocaleTimeString('sk-SK')})`,
+    info.status != null ? `status ${info.status}` : null,
+    info.requestId ? `requestId ${info.requestId}` : null,
+  ].filter(Boolean).join(' – ');
+  appendApiLog(head);
+
+  let text;
+  try {
+    text = typeof item.body === 'string' ? item.body : JSON.stringify(item.body, null, 2);
+  } catch (_) {
+    text = String(item.body);
+  }
+  if (text && text.length > 4000) text = text.slice(0, 4000) + '\n…(skrátené)';
+  appendApiLogBlock(text || '(prázdne telo)');
+
+  if (info.problems.length) {
+    showResult('submit-result',
+      `KROS spracoval request${info.requestId ? ' ' + escapeHtml(info.requestId) : ''} s chybami` +
+      (info.status != null ? ` (status ${info.status})` : '') + ':<br>' +
+      info.problems.map(escapeHtml).join('<br>'),
+      'error');
+  } else if (info.ok) {
+    showResult('submit-result',
+      `KROS potvrdil úspešné spracovanie${info.requestId ? ' (requestId ' + escapeHtml(info.requestId) + ')' : ''}.`,
+      'success');
+  }
+}
+
+async function pollKrosCallbacksOnce() {
+  let data;
+  try {
+    data = await fetchKrosCallbacks();
+  } catch (_) {
+    return;
+  }
+  const items = Array.isArray(data.items) ? data.items : [];
+  items.forEach(item => {
+    lastCallbackSeq = Math.max(lastCallbackSeq, Number(item.seq) || 0);
+    callbackSeenInWindow += 1;
+    logKrosCallback(item);
+  });
+  lastCallbackSeq = Math.max(lastCallbackSeq, Number(data.lastSeq) || 0);
+}
+
+function stopKrosCallbackPolling() {
+  if (callbackPollTimer) clearInterval(callbackPollTimer);
+  callbackPollTimer = null;
+}
+
+/** Po odoslaní platieb chvíľu sledujeme, či nepríde callback s výsledkom. */
+function startKrosCallbackPolling() {
+  callbackPollUntil = Date.now() + CALLBACK_POLL_WINDOW_MS;
+  callbackSeenInWindow = 0;
+  if (callbackPollTimer) return;
+  appendApiLog('Čakám na callback z KROS s výsledkom spracovania…');
+  callbackPollTimer = setInterval(async () => {
+    await pollKrosCallbacksOnce();
+    if (Date.now() >= callbackPollUntil) {
+      stopKrosCallbackPolling();
+      if (callbackSeenInWindow === 0) {
+        appendApiLog('Za 5 minút neprišiel žiadny callback. Overte, či máte v KROS aplikácii nastavenú callback URL vyššie a či je táto adresa dostupná z internetu (localhost KROS nedovolá).');
+      }
+    }
+  }, CALLBACK_POLL_INTERVAL_MS);
 }
 
 async function apiCall(path, options = {}, logId = 'api-log') {
@@ -241,6 +399,7 @@ function showMain() {
   loadAccounts();
   restoreSettings();
   renderInvoicesFiltersSummary();
+  initKrosCallbacks();
   loadInvoices(0);
 }
 
@@ -477,6 +636,11 @@ function createConsentState() {
   return fallback;
 }
 
+/** Endpoint, na ktorý KROS posiela notifikácie o spracovaní requestov (výsledky úhrad). */
+function getWebhookUrl() {
+  return `${window.location.origin}/kros/payments-callback`;
+}
+
 function createIntegrationConsentUrl(stateValue) {
   const consentBase = 'https://firma.kros.sk/integration-consent';
   const redirectUrl = `${window.location.origin}/kros/callback`;
@@ -489,6 +653,11 @@ function createIntegrationConsentUrl(stateValue) {
     company_mode: 'multiple',
     state: stateValue,
   });
+  // Voliteľný parameter `webhook` – KROS si pri prepojení rovno zaregistruje adresu,
+  // na ktorú bude posielať výsledky spracovania (POST /api/payments/batch je asynchrónny).
+  // KROS akceptuje len HTTPS, takže z lokálneho http://localhost ho neposielame.
+  const webhookUrl = getWebhookUrl();
+  if (webhookUrl.startsWith('https://')) params.set('webhook', webhookUrl);
   return `${consentBase}?${params.toString()}`;
 }
 
@@ -1079,8 +1248,9 @@ async function paySingleInvoice(inv) {
     const res = await apiCall('/api/payments/batch', { method: 'POST', body: { data } });
     const requestId = res?.requestId || '';
     showResult('submit-result',
-      `Platba pre doklad ${inv.documentNumber || inv.id} odoslaná (202). RequestId: ${requestId}.`,
+      `Platba pre doklad ${inv.documentNumber || inv.id} odoslaná (202). RequestId: ${requestId}. Výsledok sledujem v logu API volaní.`,
       'success');
+    startKrosCallbackPolling();
     if (btn) {
       btn.textContent = '✓ Uhradené';
       btn.classList.remove('btn-primary');
@@ -1149,8 +1319,9 @@ async function submitPayments() {
     });
     const requestId = res?.requestId || '';
     showResult('submit-result',
-      `Platby boli odoslané (202 Accepted). RequestId: ${requestId}. Výsledok spracovania príde cez váš callback v KROS aplikácii.`,
+      `Platby boli odoslané (202 Accepted). RequestId: ${requestId}. Výsledok spracovania čakám cez callback – sleduje sa v „Log API volaní“.`,
       'success');
+    startKrosCallbackPolling();
     state.selectedIds.clear();
     renderInvoices();
   } catch (e) {
@@ -1212,13 +1383,67 @@ function saveTransferSettings() {
   } catch (_) {}
 }
 
-/** Vytvorí deterministický kľúč pre platbu z dostupných polí (API nevracia vlastné ID). */
+/**
+ * LEGACY kľúč: deterministický odtlačok z dátumu/sumy/VS/referencie.
+ * Používal sa predtým, než sme začali prevody značkovať ID zdrojovej platby.
+ * Ponechávame ho kvôli platbám prevedeným v minulosti – stále podľa neho
+ * rozpoznáme, že už boli prevedené. Nevýhoda: dve platby s rovnakým dátumom,
+ * sumou a bez VS majú rovnaký kľúč (falošná zhoda).
+ */
 function makePaymentKey(p) {
   const date = (p.dateOfPayment || '').slice(0, 10);
   const sum = p.sumOfPayment != null ? String(p.sumOfPayment) : '';
   const vs = p.variableSymbol || '';
   const ref = p.paymentReference || '';
   return [date, sum, vs, ref].join('|');
+}
+
+/** Surové ID platby z KROS API (názov poľa sa môže líšiť podľa verzie). */
+function rawPaymentId(p) {
+  const raw = p?.id ?? p?.paymentId ?? p?.paymentID ?? null;
+  if (raw == null || raw === '') return null;
+  return String(raw);
+}
+
+/**
+ * PREFEROVANÝ kľúč prevodu: ID zdrojovej platby (+ zdrojový účet).
+ * Stabilné a bez kolízií – zapisuje sa do `externalId` cieľovej platby.
+ * Vráti null, ak API pre danú platbu žiadne ID nevracia (vtedy sa použije legacy kľúč).
+ */
+function makePaymentIdKey(p, srcAccountId) {
+  const id = rawPaymentId(p);
+  if (!id) return null;
+  const acc = srcAccountId != null && srcAccountId !== ''
+    ? String(srcAccountId)
+    : (p?.accountId != null ? String(p.accountId) : '');
+  return acc ? `PID-${acc}-${id}` : `PID-${id}`;
+}
+
+/** Kľúč, ktorý sa reálne zapíše do cieľovej platby a používa sa ako identita riadku. */
+function pidOf(p) {
+  return p?._pid || makePaymentIdKey(p) || makePaymentKey(p);
+}
+
+/** Legacy kľúč tej istej platby (na rozpoznanie starších prevodov). */
+function legacyPidOf(p) {
+  return p?._pidLegacy || makePaymentKey(p);
+}
+
+/** Doplní platbe oba kľúče (nové ID-based aj legacy). */
+function assignTransferKeys(p, srcAccountId) {
+  p._pidLegacy = makePaymentKey(p);
+  p._pid = makePaymentIdKey(p, srcAccountId) || p._pidLegacy;
+  return p;
+}
+
+/**
+ * Je platba už na cieľovom účte? Porovnávame `externalId` cieľových platieb
+ * s novým ID-based kľúčom a zároveň so starým legacy kľúčom (spätná kompatibilita).
+ */
+function isPaymentTransferred(p) {
+  const set = transferState.transferredIds;
+  if (!set || set.size === 0) return false;
+  return set.has(pidOf(p)) || set.has(legacyPidOf(p));
 }
 
 /** Dotyk pre swipe na mobile (prevod / úhrada faktúr). */
@@ -1280,7 +1505,7 @@ function bindTransferRowSwipeToTbody() {
     if (state.tr.classList.contains('row-transferred')) return;
     const pid = state.tr.dataset.id;
     if (!pid) return;
-    const payment = transferState.payments.find(p => (p._pid || makePaymentKey(p)) === pid);
+    const payment = transferState.payments.find(p => pidOf(p) === pid);
     if (payment) {
       state.tr.dataset.suppressNextTransferClick = '1';
       void transferSinglePayment(payment);
@@ -1454,10 +1679,14 @@ async function loadTransferPayments() {
       }
     });
 
-    // Priradíme každej zdrojovej platbe stabilný kľúč ak ho ešte nemá
-    srcPayments.forEach(p => {
-      if (!p._pid) p._pid = makePaymentKey(p);
-    });
+    // Priradíme každej zdrojovej platbe kľúče (nový ID-based + legacy)
+    srcPayments.forEach(p => assignTransferKeys(p, srcId));
+
+    const withId = srcPayments.filter(p => rawPaymentId(p)).length;
+    appendTransferApiLog(
+      `  Identifikácia prevodov: ${withId}/${srcPayments.length} zdrojových platieb má ID z API ` +
+      `(kľúč PID-…); zvyšok používa starý kľúč dátum|suma|VS|referencia.`
+    );
 
     transferState.payments = srcPayments;
     applyTransferFilter();
@@ -1489,8 +1718,7 @@ function applyTransferFilter() {
     }
     if (hideMatched && paymentHasMatchedDocuments(p)) return false;
     if (statusFilter !== 'all') {
-      const pid = p._pid || makePaymentKey(p);
-      const isTransferred = transferState.transferredIds.has(pid);
+      const isTransferred = isPaymentTransferred(p);
       if (statusFilter === 'transferred' && !isTransferred) return false;
       if (statusFilter === 'notTransferred' && isTransferred) return false;
     }
@@ -1522,8 +1750,8 @@ function renderTransferPayments() {
   document.getElementById('transfer-empty').hidden = true;
 
   tbody.innerHTML = list.map(p => {
-    const pid = p._pid || makePaymentKey(p);
-    const isTransferred = transferState.transferredIds.has(pid);
+    const pid = pidOf(p);
+    const isTransferred = isPaymentTransferred(p);
     const checked = transferState.selectedIds.has(pid);
 
     const partnerName = p.partnerName || '—';
@@ -1566,7 +1794,7 @@ function renderTransferPayments() {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const pid = btn.dataset.id;
-      const payment = transferState.payments.find(p => (p._pid || makePaymentKey(p)) === pid);
+      const payment = transferState.payments.find(p => pidOf(p) === pid);
       if (payment) transferSinglePayment(payment);
     });
   });
@@ -1607,8 +1835,8 @@ function renderTransferPayments() {
   });
 
   const checkAll = document.getElementById('transfer-check-all');
-  const selectable = list.filter(p => !transferState.transferredIds.has(p._pid || makePaymentKey(p)));
-  checkAll.checked = selectable.length > 0 && selectable.every(p => transferState.selectedIds.has(p._pid || makePaymentKey(p)));
+  const selectable = list.filter(p => !isPaymentTransferred(p));
+  checkAll.checked = selectable.length > 0 && selectable.every(p => transferState.selectedIds.has(pidOf(p)));
   checkAll.indeterminate = transferState.selectedIds.size > 0 && !checkAll.checked;
   updateTransferSelectedCount();
 }
@@ -1633,8 +1861,8 @@ async function transferSinglePayment(payment) {
     showTransferResult('Vyberte cieľový účet.', 'error');
     return;
   }
-  const pid = payment._pid || makePaymentKey(payment);
-  if (transferState.transferredIds.has(pid)) {
+  const pid = pidOf(payment);
+  if (isPaymentTransferred(payment)) {
     showTransferResult('Platba už bola prevedená na cieľový účet.', 'warning');
     return;
   }
@@ -1694,8 +1922,7 @@ async function transferSelectedPayments() {
     return;
   }
   const toTransfer = transferState.filteredPayments.filter(p => {
-    const pid = p._pid || makePaymentKey(p);
-    return transferState.selectedIds.has(pid) && !transferState.transferredIds.has(pid);
+    return transferState.selectedIds.has(pidOf(p)) && !isPaymentTransferred(p);
   });
   if (toTransfer.length === 0) {
     showTransferResult('Nevybrali ste žiadnu platbu na prevod.', 'error');
@@ -1711,8 +1938,8 @@ async function transferSelectedPayments() {
   const errors = [];
 
   for (const payment of toTransfer) {
-    const pid = payment._pid || makePaymentKey(payment);
-    if (transferState.transferredIds.has(pid)) { successCount++; continue; }
+    const pid = pidOf(payment);
+    if (isPaymentTransferred(payment)) { successCount++; continue; }
 
     const paymentItem = {
       dateOfPayment: payment.dateOfPayment,
@@ -1849,11 +2076,11 @@ function bindEvents() {
   });
 
   document.getElementById('transfer-check-all')?.addEventListener('change', function () {
-    const selectable = transferState.filteredPayments.filter(p => !transferState.transferredIds.has(p._pid || makePaymentKey(p)));
+    const selectable = transferState.filteredPayments.filter(p => !isPaymentTransferred(p));
     if (this.checked) {
-      selectable.forEach(p => transferState.selectedIds.add(p._pid || makePaymentKey(p)));
+      selectable.forEach(p => transferState.selectedIds.add(pidOf(p)));
     } else {
-      selectable.forEach(p => transferState.selectedIds.delete(p._pid || makePaymentKey(p)));
+      selectable.forEach(p => transferState.selectedIds.delete(pidOf(p)));
     }
     renderTransferPayments();
   });

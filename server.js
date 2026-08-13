@@ -135,6 +135,83 @@ app.get('/kros/callback', (req, res) => {
   res.redirect('/');
 });
 
+/* ------------------------------------------------------------------
+ * Webhook s výsledkom spracovania platieb (POST /api/payments/batch je
+ * asynchrónne – dôvod neúspechu príde až sem). Prijaté payloady držíme
+ * v pamäti (posledných MAX) a zároveň ich zapisujeme do NDJSON súboru,
+ * frontend si ich vyzdvihne cez GET /api/kros-callbacks.
+ * ------------------------------------------------------------------ */
+const PAYMENT_CALLBACK_LOG = path.join(__dirname, 'kros-payment-callbacks.log');
+const MAX_KEPT_CALLBACKS = 200;
+const paymentCallbacks = [];
+let paymentCallbackSeq = 0;
+
+function storePaymentCallback(entry) {
+  paymentCallbackSeq += 1;
+  const stored = { seq: paymentCallbackSeq, receivedAt: new Date().toISOString(), ...entry };
+  paymentCallbacks.push(stored);
+  if (paymentCallbacks.length > MAX_KEPT_CALLBACKS) paymentCallbacks.shift();
+  try {
+    fs.appendFileSync(PAYMENT_CALLBACK_LOG, JSON.stringify(stored) + '\n', 'utf8');
+  } catch (err) {
+    console.error('payment callback append failed:', err?.message || err);
+  }
+  console.log('[kros-callback] #%d %s', stored.seq, JSON.stringify(stored.body).slice(0, 500));
+  return stored;
+}
+
+// KROS posiela výsledok sem. Prijímame ľubovoľný content-type aj ľubovoľnú
+// podcestu (/kros/payments-callback/xyz), nech sa to nedá pokaziť nastavením.
+app.post(
+  ['/kros/payments-callback', '/kros/payments-callback/*'],
+  express.raw({ type: () => true, limit: '2mb' }),
+  (req, res) => {
+    // Pozor: urlencoded telo už zjedol globálny parser vyššie – vtedy je req.body objekt.
+    let parsed = null;
+    let raw = '';
+    if (Buffer.isBuffer(req.body)) {
+      raw = req.body.toString('utf8');
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (_) {}
+    } else if (req.body && typeof req.body === 'object') {
+      parsed = req.body;
+    } else {
+      raw = String(req.body ?? '');
+    }
+    storePaymentCallback({
+      path: req.originalUrl,
+      contentType: req.headers['content-type'] || '',
+      headers: {
+        // KROS podpisuje telo notifikácie webhook secretom (HMACSHA256, Base64, UTF-16LE).
+        'x-kros-signature-256': req.headers['x-kros-signature-256'],
+        'user-agent': req.headers['user-agent'],
+      },
+      body: parsed ?? raw,
+      parsed: parsed != null,
+    });
+    // KROS musí dostať rýchlu 200, inak bude webhook opakovať.
+    res.status(200).json({ ok: true });
+  }
+);
+
+// Rýchla kontrola v prehliadači, či je endpoint dostupný zvonku.
+app.get(['/kros/payments-callback', '/kros/payments-callback/*'], (req, res) => {
+  res.json({ ok: true, message: 'Webhook endpoint pre výsledky platieb je pripravený (očakáva POST).', received: paymentCallbackSeq });
+});
+
+// Frontend si sem chodí po nové callbacky (musí byť pred /api proxy!).
+app.get('/api/kros-callbacks', (req, res) => {
+  const sinceSeq = Number(req.query.sinceSeq);
+  const since = Number.isFinite(sinceSeq) ? sinceSeq : 0;
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    lastSeq: paymentCallbackSeq,
+    callbackUrl: `${req.protocol}://${req.get('host')}/kros/payments-callback`,
+    items: paymentCallbacks.filter((c) => c.seq > since),
+  });
+});
+
 function normalizeSequence(value) {
   return String(value ?? '').trim().toLowerCase();
 }
