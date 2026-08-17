@@ -85,7 +85,7 @@
           <span class="filters-collapsible-summary" id="filters-invoices-summary"></span>
         </button>
         <div class="panel-collapsible-content">
-          <div class="filters-panel-grid">
+          <div class="filters-panel-grid filters-panel-grid--invoices">
             <div class="filter-field filter-field-sequence">
               <label for="filter-sequence" class="sf-label">Číselný rad</label>
               <input type="text" id="filter-sequence" placeholder="napr. OF" autocomplete="off">
@@ -93,6 +93,23 @@
             <div class="filter-field filter-field-date">
               <label for="filter-date-from" class="sf-label">Obdobie od</label>
               <input type="date" id="filter-date-from">
+            </div>
+            <div class="filter-field filter-field-date">
+              <label for="filter-date-to" class="sf-label">Obdobie do</label>
+              <input type="date" id="filter-date-to">
+            </div>
+            <div class="filter-field filter-field-currency">
+              <label for="filter-currency" class="sf-label">Mena dokladu</label>
+              <select id="filter-currency">
+                <option value="">Všetky meny</option>
+                <option value="EUR">EUR</option>
+                <option value="CZK">CZK</option>
+                <option value="USD">USD</option>
+                <option value="GBP">GBP</option>
+                <option value="PLN">PLN</option>
+                <option value="HUF">HUF</option>
+                <option value="CHF">CHF</option>
+              </select>
             </div>
             <div class="filter-field filter-field-status">
               <span class="sf-label" id="filter-doc-type-label">Typ dokladu</span>

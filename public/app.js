@@ -466,13 +466,57 @@ function setInvoiceDocTypeFilter(value) {
   target.classList.add('toggle-btn-active');
 }
 
+/** Vráti zvolenú menu dokladu z filtra ('' = všetky meny). */
+function getInvoiceCurrencyFilter() {
+  return (document.getElementById('filter-currency')?.value || '').trim().toUpperCase();
+}
+
+/** Vráti menu dokladu (faktúry aj výdavku) v tvare na porovnanie s filtrom. */
+function getDocumentCurrency(doc) {
+  return String(doc?.prices?.currency || 'EUR').trim().toUpperCase();
+}
+
+/** Ponechá len doklady v zvolenej mene (prázdny filter = bez zmeny). */
+function filterDocsByCurrency(docs, currency) {
+  if (!currency) return docs;
+  return docs.filter(doc => getDocumentCurrency(doc) === currency);
+}
+
+/**
+ * Doplní do comba mien tie meny, ktoré sa vyskytli v načítaných dokladoch
+ * a v statickom zozname nie sú (napr. exotická mena na faktúre).
+ */
+function syncCurrencyFilterOptions(docs) {
+  const sel = document.getElementById('filter-currency');
+  if (!sel || !Array.isArray(docs)) return;
+  const known = new Set(Array.from(sel.options).map(o => o.value).filter(Boolean));
+  const extra = [];
+  docs.forEach(doc => {
+    const cur = getDocumentCurrency(doc);
+    if (cur && !known.has(cur)) {
+      known.add(cur);
+      extra.push(cur);
+    }
+  });
+  extra.sort().forEach(cur => {
+    const opt = document.createElement('option');
+    opt.value = cur;
+    opt.textContent = cur;
+    sel.appendChild(opt);
+  });
+}
+
 function renderInvoicesFiltersSummary() {
   const seq = (document.getElementById('filter-sequence')?.value || '').trim();
   const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
+  const dateTo = (document.getElementById('filter-date-to')?.value || '').trim();
+  const currency = getInvoiceCurrencyFilter();
   const docType = getInvoiceDocTypeFilter();
   const parts = [];
   if (seq) parts.push(`Rad: ${seq}`);
   if (dateFrom) parts.push(`Od: ${dateFrom}`);
+  if (dateTo) parts.push(`Do: ${dateTo}`);
+  if (currency) parts.push(`Mena: ${currency}`);
   if (docType === 'invoices') parts.push('Iba faktúry');
   else if (docType === 'expenses') parts.push('Iba výdavky');
 
@@ -506,7 +550,7 @@ function renderTransferFiltersSummary() {
 
 function saveSettings() {
   const o = {};
-  ['account', 'filter-sequence', 'filter-date-from'].forEach(id => {
+  ['account', 'filter-sequence', 'filter-date-from', 'filter-date-to', 'filter-currency'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value != null) o[id] = el.value;
   });
@@ -522,10 +566,16 @@ function restoreSettings() {
     const raw = localStorage.getItem(STORAGE_SETTINGS);
     if (!raw) return;
     const o = JSON.parse(raw);
-    ['filter-sequence', 'filter-date-from'].forEach(id => {
+    ['filter-sequence', 'filter-date-from', 'filter-date-to'].forEach(id => {
       const el = document.getElementById(id);
       if (el && o[id] != null) el.value = o[id];
     });
+    if (o['filter-currency']) {
+      // Uložená mena môže byť exotická (v statickom zozname nie je) – doplníme ju.
+      syncCurrencyFilterOptions([{ prices: { currency: o['filter-currency'] } }]);
+      const sel = document.getElementById('filter-currency');
+      if (sel) sel.value = String(o['filter-currency']).trim().toUpperCase();
+    }
     if (o.account != null) {
       const sel = document.getElementById('account');
       if (sel && o.account !== '') sel.value = o.account;
@@ -1013,6 +1063,8 @@ function normalizeExpense(exp) {
 async function loadInvoices(skip = 0) {
   const sequence = (document.getElementById('filter-sequence')?.value || '').trim();
   const dateFrom = (document.getElementById('filter-date-from')?.value || '').trim();
+  const dateTo = (document.getElementById('filter-date-to')?.value || '').trim();
+  const currency = getInvoiceCurrencyFilter();
   const params = new URLSearchParams({
     PaymentStatus: '0',
     Top: '100',
@@ -1020,8 +1072,9 @@ async function loadInvoices(skip = 0) {
   });
   if (sequence) params.set('NumberingSequence', sequence);
   if (dateFrom) params.set('DateFrom', dateFrom);
+  if (dateTo) params.set('DateTo', dateTo);
 
-  // Výdavky: KROS API podporuje NumberingSequence aj IssueDateFrom natívne.
+  // Výdavky: KROS API podporuje NumberingSequence aj IssueDateFrom/IssueDateTo natívne.
   const expenseParams = new URLSearchParams({
     PaymentStatus: '0',
     Top: '100',
@@ -1029,6 +1082,7 @@ async function loadInvoices(skip = 0) {
   });
   if (sequence) expenseParams.set('NumberingSequence', sequence);
   if (dateFrom) expenseParams.set('IssueDateFrom', dateFrom);
+  if (dateTo) expenseParams.set('IssueDateTo', dateTo);
 
   const docType = getInvoiceDocTypeFilter();
   const wantInvoices = docType !== 'expenses';
@@ -1055,15 +1109,19 @@ async function loadInvoices(skip = 0) {
     ]);
     const invList = invRes?.data || [];
     const expList = (expRes?.data || []).map(normalizeExpense);
-    const list = invList.concat(expList);
+    // Stránkovanie posudzujeme z nefiltrovaných strán, nech sa „Ďalších 100“ nestratí.
+    const hasMore = invList.length === 100 || expList.length === 100;
+    const loaded = invList.concat(expList);
+    syncCurrencyFilterOptions(loaded);
+    // Menu dokladu KROS API vo filtri neponúka – filtrujeme na klientovi.
+    const list = filterDocsByCurrency(loaded, currency);
     if (skip === 0) state.invoices = list;
     else state.invoices = state.invoices.concat(list);
     renderInvoices();
-    const hasMore = invList.length === 100 || expList.length === 100;
     document.getElementById('invoices-loading').hidden = true;
     if (state.invoices.length === 0 && !hasMore) {
       document.getElementById('invoices-empty').hidden = false;
-      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || docType !== 'all')
+      document.getElementById('invoices-empty').textContent = (sequence || dateFrom || dateTo || currency || docType !== 'all')
         ? 'Žiadny doklad nevyhovuje zadaným filtrom.'
         : 'Žiadne neuhradené faktúry ani výdavky.';
     } else {
@@ -2029,10 +2087,12 @@ function bindEvents() {
       }
     });
   }
-  document.getElementById('filter-date-from')?.addEventListener('change', () => {
-    saveSettings();
-    loadInvoices(0);
-    renderInvoicesFiltersSummary();
+  ['filter-date-from', 'filter-date-to', 'filter-currency'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      saveSettings();
+      loadInvoices(0);
+      renderInvoicesFiltersSummary();
+    });
   });
 
   document.getElementById('filter-doc-type')?.querySelectorAll('.toggle-btn').forEach(btn => {

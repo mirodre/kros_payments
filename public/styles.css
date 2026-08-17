@@ -894,6 +894,15 @@ td input[type="checkbox"] {
     grid-row: 3;
   }
 
+  /* Filter dokladov: polia sa samy rozložia podľa šírky, prepínač typu je na vlastnom riadku */
+  .filters-panel-grid.filters-panel-grid--invoices {
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  }
+
+  .filters-panel-grid--invoices .filter-field-status {
+    grid-column: 1 / -1;
+  }
+
   /* Dva rovnako široké stĺpce (účty pri prevode) */
   .filters-panel-grid.filters-panel-grid--two-equal {
     grid-template-columns: 1fr 1fr;
