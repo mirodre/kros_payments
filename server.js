@@ -96,18 +96,6 @@ app.use((req, res, next) => {
   next();
 });
 
-/** Zápis klientovských debug logov (NDJSON) – musí byť pred express.static. */
-const CLIENT_DEBUG_LOG = path.join(__dirname, '.debug-fed1bd.log');
-app.post('/api/client-debug', express.json({ limit: '64kb' }), (req, res) => {
-  try {
-    const line = JSON.stringify({ ...req.body, _receivedAt: Date.now() }) + '\n';
-    fs.appendFileSync(CLIENT_DEBUG_LOG, line, 'utf8');
-  } catch (err) {
-    console.error('client-debug append failed:', err?.message || err);
-  }
-  res.json({ ok: true });
-});
-
 // Statické súbory (frontend)
 app.use(
   express.static(path.join(__dirname, 'public'), {

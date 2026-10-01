@@ -28,14 +28,6 @@ let transferState = {
   hasMore: false,
 };
 
-// #region agent log
-function dbgClientLog(payload) {
-  const body = JSON.stringify({ sessionId: 'fed1bd', timestamp: Date.now(), ...payload });
-  fetch('/api/client-debug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => {});
-  fetch('http://127.0.0.1:7524/ingest/6b6f437e-56f3-40f1-9090-aa8e8c7b77e9', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fed1bd' }, body }).catch(() => {});
-}
-// #endregion
-
 /** Hodnoty hlavičiek HTTP musia byť ISO-8859-1; odstráni znaky mimo tejto sady. */
 function toLatin1(str) {
   if (str == null || typeof str !== 'string') return '';
@@ -735,28 +727,21 @@ function createIntegrationConsentUrl(stateValue) {
 function startKrosPostConnection() {
   const now = Date.now();
   if (window.__platformaKrosDeb && now - window.__platformaKrosDeb < 500) {
-    dbgClientLog({ hypothesisId: 'H6', location: 'app.js:startKrosPostConnection:debounce', message: 'debounced duplicate', data: { deltaMs: now - window.__platformaKrosDeb } });
     return;
   }
   window.__platformaKrosDeb = now;
-  dbgClientLog({ hypothesisId: 'H4', location: 'app.js:startKrosPostConnection:entry', message: 'startKrosPostConnection entered', data: {} });
   try {
     const stateValue = createConsentState();
     localStorage.setItem(STORAGE_KROS_PENDING_STATE, stateValue);
     showPickerConnectInfo('Presmerovávam do KROS prepojenia...', 'success');
     const url = createIntegrationConsentUrl(stateValue);
-    let host = '';
-    try { host = new URL(url).host; } catch (_) {}
-    dbgClientLog({ hypothesisId: 'H5', location: 'app.js:startKrosPostConnection:beforeAssign', message: 'calling location.assign', data: { consentHost: host, urlLen: url.length } });
     window.location.assign(url);
     setTimeout(() => {
       window.__platformaKrosDeb = 0;
-      dbgClientLog({ hypothesisId: 'H7', location: 'app.js:startKrosPostConnection:postAssignTimer', message: 'still on page 2.5s after assign (navigation likely blocked)', data: {} });
     }, 2500);
   } catch (err) {
     console.error(err);
     window.__platformaKrosDeb = 0;
-    dbgClientLog({ hypothesisId: 'H4', location: 'app.js:startKrosPostConnection:catch', message: 'startKrosPostConnection threw', data: { errName: err?.name, errMessage: String(err?.message || err).slice(0, 200) } });
     showPickerConnectInfo(
       'Nepodarilo sa spustiť prepojenie: ' + (err && err.message ? err.message : String(err)),
       'error'
@@ -767,7 +752,6 @@ function startKrosPostConnection() {
 /** Klik cez delegáciu (capture) – spoľahlivé aj pri prekrytí alebo keď priamy listener nebeží. */
 function ensureKrosConnectClickHandler() {
   const app = document.getElementById('app');
-  dbgClientLog({ hypothesisId: 'H1', location: 'app.js:ensureKrosConnectClickHandler:entry', message: 'ensureKrosConnectClickHandler', data: { hasApp: !!app, alreadyBound: app?.dataset?.krosConnectBound === '1' } });
   if (!app || app.dataset.krosConnectBound === '1') return;
   app.dataset.krosConnectBound = '1';
   app.addEventListener(
@@ -778,7 +762,6 @@ function ensureKrosConnectClickHandler() {
       const rawTarget = e.target;
       const el = rawTarget && rawTarget.nodeType === 1 ? rawTarget : rawTarget?.parentElement;
       const btn = el?.closest?.('#btn-connect-kros');
-      dbgClientLog({ hypothesisId: 'H2', location: 'app.js:krosCapture:click', message: 'click inside module-kros-connect', data: { rawNodeType: rawTarget?.nodeType, rawName: rawTarget?.nodeName, elTag: el?.tagName, elId: el?.id || '', foundBtn: !!btn, btnDisabled: btn ? !!btn.disabled : null } });
       let actionBtn = btn;
       if (!actionBtn) {
         const btnEl = document.getElementById('btn-connect-kros');
@@ -788,21 +771,16 @@ function ensureKrosConnectClickHandler() {
           const y = e.clientY;
           if (Number.isFinite(x) && Number.isFinite(y) && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
             actionBtn = btnEl;
-            dbgClientLog({ hypothesisId: 'H2', location: 'app.js:krosCapture:bboxFallback', message: 'matched button by bounding rect', data: { rW: Math.round(r.width), rH: Math.round(r.height) } });
           }
         }
       }
       if (!actionBtn) return;
-      if (actionBtn.disabled) {
-        dbgClientLog({ hypothesisId: 'H3', location: 'app.js:krosCapture:disabled', message: 'btn-connect-kros disabled, skip', data: {} });
-        return;
-      }
+      if (actionBtn.disabled) return;
       e.preventDefault();
       startKrosPostConnection();
     },
     true
   );
-  dbgClientLog({ hypothesisId: 'H1', location: 'app.js:ensureKrosConnectClickHandler:attached', message: 'capture listener attached on #app', data: {} });
 }
 
 async function processKrosPostCallbackResult() {
@@ -2258,7 +2236,6 @@ function init() {
     bindEvents();
   } catch (err) {
     console.error('bindEvents:', err);
-    dbgClientLog({ hypothesisId: 'H8', location: 'app.js:init', message: 'bindEvents threw', data: { errMessage: String(err?.message || err).slice(0, 300) } });
   }
   showModulePicker();
   updateActiveCompanyLabels(getActiveCompanyConnection());
