@@ -4,18 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Financie – KROS</title>
-  <meta name="theme-color" content="#0f1320">
+  <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Neuhradené faktúry a platby cez KROS Open API">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Úhrady">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Financie">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css?v=20261001">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-invoice" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h14v17l-2.33-1.5-2.34 1.5L12 19l-2.33 1.5L7.33 19 5 20.5z"/><path d="M9 8h6M9 11.5h6M9 15h3.5"/></g></symbol>
+    <symbol id="i-transfer" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15m-4-4 4 4-4 4"/><path d="M20 16H5m4-4-4 4 4 4"/></g></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10.5a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></g></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5V5.5a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 14 5.5v15M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5M2.5 20.5h19"/><path d="M7.5 8h3M7.5 11.5h3M7.5 15h3"/></g></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></g></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="https://www.krosdoplnky.sk/" title="krosdoplnky.sk">
+        <span class="brand-mark"><svg><use href="#i-invoice"/></svg></span>
+        <span class="brand-text">Financie</span>
+        <span class="brand-sep" aria-hidden="true">/</span>
+        <span class="brand-site">krosdoplnky<span>.sk</span></span>
+      </a>
+    </div>
+  </header>
   <div id="app">
     <input type="hidden" id="api-base" value="https://api-economy.kros.sk">
     <input type="hidden" id="token" value="">
@@ -23,10 +48,22 @@
     <!-- Výber modulu (predvolená obrazovka) -->
     <section id="module-picker">
       <div class="module-picker-wrap">
-        <h1>Vyberte modul</h1>
+        <div class="picker-hero">
+          <span class="eyebrow">Doplnok ku KROS aplikáciám</span>
+          <h1>Úhrady a prevody platieb</h1>
+          <p class="picker-lead">Hromadne uhraďte neuhradené faktúry a výdavky alebo preveďte platby medzi účtami — priamo nad dátami vo vašej KROS aplikácii.</p>
+        </div>
+
         <div id="module-kros-connect" class="module-kros-connect">
+          <div class="connect-head">
+            <span class="connect-icon"><svg><use href="#i-link"/></svg></span>
+            <div>
+              <div class="connect-title">Prepojenie s KROS</div>
+              <div class="connect-sub">Prepojte doplnok s firmou vo vašej KROS aplikácii.</div>
+            </div>
+          </div>
           <div id="module-picker-connect-info" class="result-box" hidden></div>
-          <button type="button" id="btn-connect-kros" class="btn btn-primary" onclick="if (typeof startKrosPostConnection === 'function') startKrosPostConnection();">Prepojiť s KROS</button>
+          <button type="button" id="btn-connect-kros" class="btn btn-primary btn-lg" onclick="if (typeof startKrosPostConnection === 'function') startKrosPostConnection();">Prepojiť s KROS</button>
           <p class="muted small module-kros-connect-note">
             Na aktiváciu prepojenia je potrebné mať aktívnu licenciu na API v niektorej z KROS aplikácií.
           </p>
@@ -35,24 +72,33 @@
 
         <div id="module-company-switcher" class="module-company-switcher hidden">
           <label for="module-company-select">Aktívna firma</label>
-          <select id="module-company-select"></select>
+          <div class="select-with-icon">
+            <svg class="select-icon"><use href="#i-building"/></svg>
+            <select id="module-company-select"></select>
+          </div>
           <div id="module-picker-info" class="result-box" hidden></div>
         </div>
-        <p id="module-picker-locked-hint" class="muted small module-picker-locked-hint">Moduly sa aktivujú po úspešnom prepojení s KROS.</p>
+        <p id="module-picker-locked-hint" class="module-picker-locked-hint"><svg><use href="#i-lock"/></svg>Moduly sa aktivujú po úspešnom prepojení s KROS.</p>
         <div class="module-picker-grid">
           <button type="button" id="btn-module-invoices" class="btn-module" disabled aria-disabled="true">
-            <span class="btn-module-icon">🧾</span>
-            <span class="btn-module-title">Úhrada faktúr</span>
-            <span class="btn-module-desc">Hromadné uhrádzanie neuhradených faktúr z KROS aplikácie</span>
+            <span class="btn-module-icon"><svg><use href="#i-invoice"/></svg></span>
+            <span class="btn-module-body">
+              <span class="btn-module-title">Úhrada faktúr</span>
+              <span class="btn-module-desc">Hromadné uhrádzanie neuhradených faktúr a výdavkov z KROS aplikácie.</span>
+            </span>
+            <span class="btn-module-arrow"><svg><use href="#i-arrow-right"/></svg></span>
           </button>
           <button type="button" id="btn-module-transfer" class="btn-module" disabled aria-disabled="true">
-            <span class="btn-module-icon">🔄</span>
-            <span class="btn-module-title">Prevod medzi účtami</span>
-            <span class="btn-module-desc">Prevedie platby zo zdrojového účtu na cieľový účet s opačným znamienkom</span>
+            <span class="btn-module-icon"><svg><use href="#i-transfer"/></svg></span>
+            <span class="btn-module-body">
+              <span class="btn-module-title">Prevod medzi účtami</span>
+              <span class="btn-module-desc">Prevedie platby zo zdrojového účtu na cieľový účet s opačným znamienkom.</span>
+            </span>
+            <span class="btn-module-arrow"><svg><use href="#i-arrow-right"/></svg></span>
           </button>
         </div>
         <div class="module-picker-footer">
-          <button type="button" id="btn-module-logout" class="btn btn-secondary btn-sm" hidden disabled>Zruš prepojenie</button>
+          <button type="button" id="btn-module-logout" class="btn btn-ghost btn-sm" hidden disabled>Zrušiť prepojenie</button>
         </div>
       </div>
     </section>
@@ -60,18 +106,19 @@
     <!-- Hlavná časť po prihlásení -->
     <section id="main-section" class="hidden">
       <header class="main-header">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <button type="button" id="btn-back-invoices" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
+        <div class="main-header-title">
+          <button type="button" id="btn-back-invoices" class="btn-back" title="Späť na výber modulu"><svg><use href="#i-arrow-left"/></svg>Moduly</button>
           <h1>Neuhradené faktúry</h1>
+          <p class="main-header-sub">Vyberte účet, označte doklady a odošlite úhrady do KROS.</p>
         </div>
         <div class="header-actions">
-          <span id="active-company-label-main" class="muted"></span>
+          <span id="active-company-label-main" class="company-pill"></span>
         </div>
       </header>
 
       <!-- Bankový účet na úhradu (hore, podobne ako v module Prevod) -->
       <div class="panel filters-panel">
-        <h2 class="filters-panel-title">Bankový účet na úhradu</h2>
+        <label for="account" class="filters-panel-title">Bankový účet na úhradu</label>
         <div class="filter-field">
           <select id="account">
             <option value="">— načítavam —</option>
@@ -81,7 +128,7 @@
 
       <div id="filters-invoices-collapsible" class="panel panel-collapsible">
         <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-invoices" aria-expanded="false">
-          <span class="panel-toggle-icon">▶</span> Filter
+          <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Filter
           <span class="filters-collapsible-summary" id="filters-invoices-summary"></span>
         </button>
         <div class="panel-collapsible-content">
@@ -128,7 +175,7 @@
         <div class="table-header">
           <h2>Zoznam dokladov</h2>
           <div class="table-actions">
-            <button type="button" id="btn-load-invoices" class="btn btn-primary btn-sm">Načítať doklady</button>
+            <button type="button" id="btn-load-invoices" class="btn btn-secondary btn-sm">Načítať doklady</button>
             <span id="selected-count" class="muted"></span>
           </div>
         </div>
@@ -156,17 +203,17 @@
       </div>
 
       <!-- Uhradiť vybrané -->
-      <div class="panel">
+      <div class="panel action-bar">
         <div class="pay-actions-row">
-          <button type="button" id="btn-submit-payments" class="btn btn-primary" disabled>Uhradiť vybrané doklady</button>
+          <button type="button" id="btn-submit-payments" class="btn btn-primary btn-lg" disabled>Uhradiť vybrané doklady</button>
         </div>
         <div id="submit-result" class="result-box" hidden></div>
       </div>
 
       <!-- Log API volaní -->
-      <div id="panel-api-log" class="panel panel-collapsible">
+      <div id="panel-api-log" class="panel panel-collapsible panel-devlog">
         <button type="button" class="panel-toggle" id="toggle-api-log" aria-expanded="false">
-          <span class="panel-toggle-icon">▶</span> Log API volaní
+          <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Log API volaní
         </button>
         <div class="panel-collapsible-content">
           <div class="api-log-actions">
@@ -179,18 +226,19 @@
     <!-- Prevod medzi účtami -->
     <section id="transfer-section" class="hidden">
       <header class="main-header">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <button type="button" id="btn-back-transfer" class="btn btn-secondary btn-sm" title="Späť na výber modulu">← Späť</button>
+        <div class="main-header-title">
+          <button type="button" id="btn-back-transfer" class="btn-back" title="Späť na výber modulu"><svg><use href="#i-arrow-left"/></svg>Moduly</button>
           <h1>Prevod medzi účtami</h1>
+          <p class="main-header-sub">Platby zo zdrojového účtu sa zapíšu na cieľový účet s opačným znamienkom.</p>
         </div>
         <div class="header-actions">
-          <span id="active-company-label-transfer" class="muted"></span>
+          <span id="active-company-label-transfer" class="company-pill"></span>
         </div>
       </header>
 
       <!-- Účty -->
       <div class="panel filters-panel">
-        <h2 class="filters-panel-title">Prevod medzi účtami</h2>
+        <h2 class="filters-panel-title">Účty</h2>
         <div class="filters-panel-grid filters-panel-grid--two-equal">
           <div class="filter-field">
             <label for="transfer-src-account" class="sf-label">Zdrojový účet</label>
@@ -210,7 +258,7 @@
       <!-- Filtre -->
       <div id="filters-transfer-collapsible" class="panel panel-collapsible">
         <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-transfer" aria-expanded="false">
-          <span class="panel-toggle-icon">▶</span> Filter
+          <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Filter
           <span class="filters-collapsible-summary" id="filters-transfer-summary"></span>
         </button>
         <div class="panel-collapsible-content">
@@ -246,7 +294,7 @@
         <div class="table-header">
           <h2>Zoznam platieb <span id="transfer-count-label" class="table-count-label"></span></h2>
           <div class="table-actions">
-            <button type="button" id="btn-load-transfer" class="btn btn-primary btn-sm">Načítať platby</button>
+            <button type="button" id="btn-load-transfer" class="btn btn-secondary btn-sm">Načítať platby</button>
             <span id="transfer-selected-count" class="muted"></span>
           </div>
         </div>
@@ -264,7 +312,7 @@
                 <th class="tr-col-partner">Partner / Správa</th>
                 <th class="tr-col-vs">VS / Referencia</th>
                 <th class="tr-col-sum">Suma</th>
-                <th class="tr-col-transferred" title="Prevedené na cieľový účet">✦</th>
+                <th class="tr-col-transferred" title="Prevedené na cieľový účet"><svg class="th-icon"><use href="#i-check"/></svg></th>
                 <th class="col-action"></th>
               </tr>
             </thead>
@@ -275,15 +323,17 @@
       </div>
 
       <!-- Hromadný prevod -->
-      <div class="panel">
-        <button type="button" id="btn-transfer-selected" class="btn btn-primary" disabled>Previesť vybrané platby</button>
+      <div class="panel action-bar">
+        <div class="pay-actions-row">
+          <button type="button" id="btn-transfer-selected" class="btn btn-primary btn-lg" disabled>Previesť vybrané platby</button>
+        </div>
         <div id="transfer-result" class="result-box" hidden></div>
       </div>
 
       <!-- Log API volaní -->
-      <div id="panel-transfer-api-log" class="panel panel-collapsible">
+      <div id="panel-transfer-api-log" class="panel panel-collapsible panel-devlog">
         <button type="button" class="panel-toggle" id="toggle-transfer-api-log" aria-expanded="false">
-          <span class="panel-toggle-icon">▶</span> Log API volaní
+          <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Log API volaní
         </button>
         <div class="panel-collapsible-content">
           <div class="api-log-actions">

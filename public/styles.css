@@ -1,19 +1,56 @@
-/* Financie – základné štýly */
+/* Financie – vizuálny jazyk krosdoplnky.sk */
 
 :root {
-  --bg: #f5f6f8;
-  --surface: #fff;
-  --border: #e0e2e6;
-  --text: #1a1d21;
-  --text-muted: #6b7280;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --secondary: #64748b;
-  --success: #059669;
-  --error: #dc2626;
-  --warning: #d97706;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,.08);
+  /* Brand (zhodné s krosdoplnky.sk) */
+  --brand: #914735;
+  --brand-hover: #6f3527;
+  --brand-tint: #f5ebe7;
+  --brand-tint-line: #e7d5ce;
+
+  /* Neutrály */
+  --ink: #020617;
+  --muted: #475569;
+  --subtle: #64748b;
+  --faint: #94a3b8;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --slate-tint: #edf1f6;
+
+  /* Stavy */
+  --green: #16a34a;
+  --green-ink: #15803d;
+  --green-tint: #dcfce7;
+  --green-line: #bbf7d0;
+  --red: #dc2626;
+  --red-ink: #b91c1c;
+  --red-tint: #fef2f2;
+  --red-line: #fecaca;
+  --amber-ink: #b45309;
+  --amber-tint: #fffbeb;
+  --amber-line: #fde68a;
+
+  --display: Geist, Inter, system-ui, sans-serif;
+  --body: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'Cascadia Code', Menlo, Consolas, monospace;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --shadow-xs: 0 1px 2px rgba(2, 6, 23, 0.05);
+  --shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.04), 0 1px 3px rgba(2, 6, 23, 0.06);
+  --shadow-md: 0 4px 16px -4px rgba(2, 6, 23, 0.10), 0 2px 4px rgba(2, 6, 23, 0.04);
+  --focus: 0 0 0 3px rgba(145, 71, 53, 0.18);
+
+  /* Spätná kompatibilita so starými názvami */
+  --bg: var(--surface-alt);
+  --border: var(--line);
+  --text: var(--ink);
+  --text-muted: var(--subtle);
+  --primary: var(--brand);
+  --success: var(--green-ink);
+  --error: var(--red);
+  --warning: var(--amber-ink);
 }
 
 * {
@@ -26,77 +63,164 @@
   display: none !important;
 }
 
+.hidden {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--body);
   font-size: 15px;
   line-height: 1.5;
-  color: var(--text);
-  background: var(--bg);
+  color: var(--ink);
+  background: var(--surface-alt);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+h1, h2 {
+  font-family: var(--display);
+  color: var(--ink);
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.75rem 0;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.muted {
+  color: var(--subtle);
+  font-size: 0.875rem;
+}
+
+.small {
+  font-size: 0.8125rem;
+}
+
+/* ============================================================
+   Horná lišta
+   ============================================================ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 60px;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 18px;
+}
+
+.brand-text {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+}
+
+.brand-sep {
+  color: var(--line-strong);
+  font-weight: 300;
+  font-size: 1.125rem;
+}
+
+.brand-site {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--brand);
+}
+
+.brand-site span {
+  color: var(--faint);
+}
+
+.brand:hover .brand-site {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 #app {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem 3rem;
 }
 
-h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem 0;
-}
-
-h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem 0;
-}
-
+/* ============================================================
+   Panely
+   ============================================================ */
 .panel {
   background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-xs);
   padding: 1.25rem 1.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.settings-filters-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 180px;
-}
-
-.settings-filters-item select,
-.settings-filters-item input[type="text"],
-.settings-filters-item input[type="date"] {
-  flex: 1;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.875rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  min-width: 0;
-}
-
-.settings-filters-item input[type="date"] {
-  appearance: none;
-  -webkit-appearance: none;
+  margin-bottom: 1rem;
 }
 
 .sf-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
   white-space: nowrap;
   margin: 0;
 }
 
-/* Zbaliteľné panely (Nastavenia, Filtre) */
+/* Zbaliteľné panely (Filtre, Log) */
 .panel-collapsible {
   padding: 0;
   overflow: hidden;
@@ -105,28 +229,31 @@ h2 {
 .panel-toggle {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.6rem 1rem;
+  min-height: 52px;
+  padding: 0.75rem 1.25rem;
   margin: 0;
   border: none;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.95rem;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9375rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  border-radius: var(--radius);
   transition: background 0.15s;
 }
 
 .panel-toggle:hover {
-  background: #e8eaee;
+  background: var(--surface-alt);
 }
 
 .panel-toggle-icon {
-  font-size: 0.7rem;
-  transition: transform 0.2s;
+  display: inline-flex;
+  color: var(--faint);
+  font-size: 1rem;
+  transition: transform 0.2s ease;
 }
 
 .panel-collapsible.expanded .panel-toggle-icon {
@@ -135,736 +262,308 @@ h2 {
 
 .panel-collapsible-content {
   display: none;
-  padding: 1rem 1.25rem 1.25rem;
-  border-top: 1px solid var(--border);
+  padding: 1.25rem;
+  border-top: 1px solid var(--line);
 }
 
 .panel-collapsible.expanded .panel-collapsible-content {
   display: block;
 }
 
-/* Zbaliteľné filtre */
 .filters-panel-toggle {
-  align-items: flex-start;
   flex-wrap: wrap;
 }
 
 .filters-collapsible-summary {
-  margin-left: 0.35rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.85rem;
+  margin-left: 0.25rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-tint-line);
+  color: var(--brand);
+  font-weight: 500;
+  font-size: 0.8125rem;
   white-space: normal;
+  line-height: 1.5;
 }
 
 .filters-collapsible-summary:empty {
   display: none;
 }
 
-.muted {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+/* Log API – nenápadný, technický */
+.panel-devlog {
+  background: transparent;
+  box-shadow: none;
+  border-style: dashed;
 }
 
-.small {
-  font-size: 0.85rem;
-}
-
-/* Výber prostredia (Test / Production) */
-.env-picker {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.env-btn {
-  flex: 1;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.65rem 1rem;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.env-btn:hover {
-  border-color: var(--primary);
-  background: #f0f4ff;
-}
-
-.env-btn-active {
-  border-color: var(--primary);
-  background: #eef2ff;
-}
-
-.env-btn-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.env-btn-url {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  font-family: ui-monospace, 'Cascadia Code', monospace;
-}
-
-/* Form */
-.form-group {
-  margin-bottom: 0.75rem;
-}
-
-.form-group label {
-  display: block;
+.panel-devlog .panel-toggle {
+  font-size: 0.8125rem;
   font-weight: 500;
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
+  color: var(--subtle);
+  min-height: 44px;
 }
 
-.form-group input[type="text"],
-.form-group input[type="password"],
-.form-group input[type="number"],
-.form-group input[type="date"],
-.form-group input[type="url"],
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 2.5em;
-}
-
-.form-row {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.form-row.flex-wrap {
-  flex-wrap: wrap;
-}
-
-.form-row .form-group {
-  flex: 1;
-  min-width: 140px;
-}
-
-.checkbox-group label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: normal;
-}
-
-.checkbox-group input {
-  width: auto;
-}
-
-/* Buttons */
+/* ============================================================
+   Tlačidlá
+   ============================================================ */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 6px;
+  gap: 0.5rem;
+  height: 40px;
+  padding: 0 1.125rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background .15s;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .btn:disabled {
-  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: var(--brand);
   color: #fff;
+  box-shadow: var(--shadow-xs);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
+  background: var(--brand-hover);
+}
+
+.btn-primary:disabled {
+  background: var(--slate-tint);
+  color: var(--faint);
+  box-shadow: none;
 }
 
 .btn-secondary {
-  background: var(--secondary);
-  color: #fff;
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #475569;
+  background: var(--surface-alt);
+  border-color: var(--faint);
 }
 
-.btn-success {
-  background: #0d9668;
-  color: #fff;
+.btn-secondary:disabled {
+  color: var(--faint);
 }
 
+.btn-ghost {
+  background: transparent;
+  color: var(--subtle);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--slate-tint);
+  color: var(--ink);
+}
+
+.btn-success,
 .btn-success:disabled {
-  opacity: 1;
+  background: var(--green-tint);
+  color: var(--green-ink);
+  border-color: var(--green-line);
+  box-shadow: none;
 }
 
 .btn-sm {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
+  height: 34px;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
 }
 
-/* Main header */
+.btn-lg {
+  height: 44px;
+  padding: 0 1.375rem;
+  font-size: 0.9375rem;
+}
+
+/* ============================================================
+   Hlavička sekcie
+   ============================================================ */
 .main-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.main-header h1 {
-  margin: 0;
-}
-
-/* Table */
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.table-header h2 {
-  margin: 0;
-}
-
-.table-count-label {
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: var(--text-muted);
-  margin-left: 0.5rem;
-}
-
-.table-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-
-th {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-tbody tr:hover {
-  background: #f8fafc;
-}
-
-tbody tr.selected {
-  background: #eff6ff;
-}
-
-td input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-}
-
-.number {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Tabuľka faktúr – kompaktný dvojriadkový vzhľad, menšie písmo */
-.invoices-table {
-  table-layout: fixed;
-  font-size: 0.8rem;
-}
-
-.invoices-table th,
-.invoices-table td {
-  padding: 0.35rem 0.5rem;
-  vertical-align: top;
-  font-size: inherit;
-}
-
-.invoices-table th {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.invoices-table .col-check {
-  width: 2.25rem;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.invoices-table .col-doc {
-  min-width: 0;
-  width: 11rem;
-  max-width: 11rem;
-}
-
-.invoices-table .col-dates {
-  width: 10.5rem;
-}
-
-.invoices-table .col-sum {
-  width: 7rem;
-  text-align: right;
-}
-
-.invoices-table .col-sum .cell-sum-doc {
-  font-size: 0.85em;
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.invoices-table .col-sum .cell-l2 {
-  font-weight: 600;
-  color: var(--text);
-}
-
-.invoices-table .col-vs {
-  width: 4.5rem;
-}
-
-.invoices-table .col-action {
-  width: 5.5rem;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.invoices-table .cell-l1,
-.invoices-table .cell-l2 {
-  display: block;
-  line-height: 1.35;
-}
-
-.invoices-table .cell-l1 {
-  font-weight: 500;
-  color: var(--text);
-}
-
-.invoices-table .cell-l2 {
-  font-size: 0.9em;
-  color: var(--text-muted);
-  margin-top: 0.1rem;
-}
-
-.invoices-table .col-doc .cell-l2 {
-  margin-top: 0.05rem;
-}
-
-.invoices-table .col-dates .cell-l2::before {
-  content: 'Splatn.: ';
-  color: var(--text-muted);
-}
-
-.invoices-table .cell-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-  display: block;
-}
-
-.invoices-table .btn-pay-one {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-}
-
-.invoices-table tr.row-paid {
-  background: rgba(13, 150, 104, 0.08);
-}
-.invoices-table tr.row-paid td {
-  color: var(--text-muted);
-}
-
-/* Mobilné zúženie stĺpcov pre .invoices-table je vylúčené: #invoices-table a #transfer-table majú vlastné karty v @media (max-width: 768px) nižšie. */
-
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.badge-overdue {
-  background: #fef2f2;
-  color: var(--error);
-}
-
-.badge-ok {
-  background: #f0fdf4;
-  color: var(--success);
-}
-
-.badge-expense {
-  background: #fff7ed;
-  color: #c2410c;
-}
-
-.badge-invoice {
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-.loading, .empty-state {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-muted);
-}
-
-.error-box, .result-box {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.error-box {
-  background: #fef2f2;
-  color: var(--error);
-}
-
-.result-box.success {
-  background: #f0fdf4;
-  color: var(--success);
-}
-
-.result-box.error {
-  background: #fef2f2;
-  color: var(--error);
-}
-
-.result-box.warning {
-  background: #fffbeb;
-  color: var(--warning);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.pagination button {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  cursor: pointer;
-}
-
-.pagination button:hover:not(:disabled) {
-  background: var(--bg);
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination span {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.pay-actions-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.pay-actions-row .settings-filters-item {
-  flex: 1 1 360px;
-  min-width: 260px;
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* Log API volaní */
-.api-log-actions {
-  margin-bottom: 0.5rem;
-}
-
-.api-log {
-  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin: 0;
-  max-height: 20rem;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--text);
-}
-
-/* Toggle group (filter tlačidlá) */
-.toggle-group {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.toggle-btn {
-  padding: 0.3rem 0.75rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  border: none;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-  white-space: nowrap;
-}
-
-.toggle-btn:last-child {
-  border-right: none;
-}
-
-.toggle-btn:hover:not(.toggle-btn-active) {
-  background: var(--bg);
-  color: var(--text);
-}
-
-.toggle-btn-active {
-  background: var(--primary);
-  color: #fff;
-}
-
-/* ============================================================
-   Výber modulu
-   ============================================================ */
-#module-picker {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 3rem;
-  min-height: 60vh;
-}
-
-.module-picker-wrap {
-  width: 100%;
-  max-width: 700px;
-  text-align: center;
-}
-
-.module-picker-wrap h1 {
-  margin-bottom: 0.25rem;
-}
-
-.module-picker-wrap .module-picker-lead {
-  margin-bottom: 1.25rem;
-  display: block;
-}
-
-.module-kros-connect {
-  position: relative;
-  z-index: 2;
-  pointer-events: auto;
-  max-width: 420px;
-  margin: 0 auto 1.75rem;
-  padding: 1.25rem 1.5rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.module-kros-connect .btn-primary {
-  position: relative;
-  z-index: 3;
-  width: 100%;
-  margin-top: 0.35rem;
-  pointer-events: auto !important;
-}
-
-.module-kros-connect .result-box,
-.module-kros-connect .error-box {
-  margin-bottom: 0.75rem;
-  text-align: left;
-}
-
-.module-kros-connect-note {
-  margin: 0.75rem 0 0;
-  text-align: left;
-  line-height: 1.45;
-}
-
-.module-picker-locked-hint {
-  margin: -0.5rem auto 1rem;
-  max-width: 520px;
-}
-
-.module-company-switcher {
-  max-width: 560px;
-  margin: 0 auto 1.2rem;
-  text-align: left;
-}
-
-.module-company-switcher label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
-}
-
-.module-company-switcher select {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  font-size: 0.95rem;
-}
-
-.module-company-switcher .result-box {
-  margin-top: 0.6rem;
-}
-
-.module-picker-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  margin-bottom: 2rem;
-}
-
-@media (max-width: 520px) {
-  .module-picker-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.btn-module {
+.main-header-title {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.main-header-sub {
+  margin: 0.375rem 0 0;
+  color: var(--subtle);
+  font-size: 0.9375rem;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem -0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--subtle);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-back:hover {
+  background: var(--slate-tint);
+  color: var(--ink);
+}
+
+.header-actions {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 2rem 1.5rem;
-  border: 2px solid var(--border);
-  border-radius: 12px;
+}
+
+.company-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 34px;
+  padding: 0 0.875rem 0 0.375rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  text-align: center;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  box-shadow: var(--shadow);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink);
+  max-width: 100%;
 }
 
-.btn-module:hover {
-  border-color: var(--primary);
-  background: #f0f4ff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+.company-pill::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--brand-tint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23914735' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20.5V5.5a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 14 5.5v15M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5M2.5 20.5h19M7.5 8h3M7.5 11.5h3M7.5 15h3'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
-.btn-module-icon {
-  font-size: 2.5rem;
-  line-height: 1;
-}
-
-.btn-module-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.btn-module-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.btn-module.btn-module--locked,
-.btn-module:disabled {
-  opacity: 0.48;
-  cursor: not-allowed;
-  box-shadow: none;
-  filter: grayscale(0.35);
-  /* Inak môže „chytiť“ klik nad tlačidlom Prepojiť (prekrytie) a nič sa nestane. */
-  pointer-events: none;
-}
-
-.btn-module.btn-module--locked:hover,
-.btn-module:disabled:hover {
-  border-color: var(--border);
-  background: var(--surface);
-  box-shadow: none;
-}
-
-.module-picker-footer {
-  display: flex;
-  justify-content: center;
+.company-pill:empty {
+  display: none;
 }
 
 /* ============================================================
-   Prevod medzi účtami – tabuľka
+   Formulárové prvky
    ============================================================ */
-/* Responzívne filter panely (neuhradené faktúry, prevod) */
+select,
+input[type="text"],
+input[type="date"] {
+  font-family: inherit;
+}
+
+.filter-field input[type="text"],
+.filter-field input[type="date"],
+.filter-field select,
+.module-company-switcher select {
+  width: 100%;
+  max-width: 100%;
+  height: 40px;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--ink);
+  background-color: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.filter-field select,
+.module-company-switcher select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.25rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+}
+
+.filter-field input:hover,
+.filter-field select:hover,
+.module-company-switcher select:hover {
+  border-color: var(--faint);
+}
+
+.filter-field input:focus,
+.filter-field select:focus,
+.module-company-switcher select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--focus);
+}
+
+.filter-field input::placeholder {
+  color: var(--faint);
+}
+
+.filter-field input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--brand);
+}
+
+/* ============================================================
+   Filter panely
+   ============================================================ */
 .filters-panel {
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
 }
 
 .filters-panel-title {
-  margin: 0 0 0.75rem;
+  display: block;
+  margin: 0 0 0.625rem;
   padding: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--subtle);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   line-height: 1.2;
+}
+
+.filters-panel > .filter-field {
+  max-width: 560px;
 }
 
 .filters-panel-grid {
   display: grid;
-  gap: 1rem;
+  gap: 1rem 1.25rem;
   grid-template-columns: 1fr;
 }
 
@@ -914,7 +613,7 @@ td input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.35rem;
+  gap: 0.375rem;
   min-width: 0;
 }
 
@@ -922,201 +621,932 @@ td input[type="checkbox"] {
   white-space: normal;
 }
 
-.filter-field input[type="text"],
-.filter-field input[type="date"],
-.filter-field select {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 0.45rem 0.65rem;
-  font-size: 0.875rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  min-width: 0;
+/* Segmentový prepínač */
+.toggle-group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--slate-tint);
 }
 
-.filter-field select {
-  cursor: pointer;
-}
-
-.filter-field input[type="date"] {
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-/* Stav prevodu: samostatné „tabletky“, zalamujú sa na úzkej obrazovke */
-.filter-field-status .transfer-status-toggle-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+.toggle-btn {
+  height: 32px;
+  padding: 0 0.875rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
   border: none;
-  overflow: visible;
+  border-radius: 7px;
   background: transparent;
-  width: 100%;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
-.filter-field-status .transfer-status-toggle-group .toggle-btn {
-  flex: 1 1 auto;
-  min-width: min(100%, 7.75rem);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+.toggle-btn:hover:not(.toggle-btn-active) {
+  color: var(--ink);
 }
 
-.filter-field-status .transfer-status-toggle-group .toggle-btn:last-child {
-  border-right: 1px solid var(--border);
+.toggle-btn-active {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.08), 0 0 0 1px rgba(2, 6, 23, 0.04);
 }
 
-/* Typ dokladu: kompaktný segmentový prepínač, nezaberá celú šírku panela */
-#filter-doc-type {
+#filter-doc-type,
+.filter-field-status .transfer-status-toggle-group {
   align-self: start;
   max-width: 100%;
-  background: var(--bg);
-}
-
-#filter-doc-type .toggle-btn {
-  padding: 0.45rem 1rem;
-  font-size: 0.85rem;
 }
 
 /* Na úzkej obrazovke roztiahni na plnú šírku s rovnako širokými tlačidlami */
 @media (max-width: 639px) {
-  #filter-doc-type {
+  #filter-doc-type,
+  .filter-field-status .transfer-status-toggle-group {
+    display: flex;
     width: 100%;
   }
 
-  #filter-doc-type .toggle-btn {
+  #filter-doc-type .toggle-btn,
+  .filter-field-status .transfer-status-toggle-group .toggle-btn {
     flex: 1 1 0;
     min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    height: auto;
+    min-height: 34px;
+    padding: 0.375rem 0.5rem;
     white-space: normal;
-    line-height: 1.15;
-    padding: 0.4rem 0.5rem;
+    line-height: 1.2;
   }
 }
 
 .filter-field-matched .filter-checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   font-size: 0.875rem;
-  font-weight: normal;
+  color: var(--ink);
   cursor: pointer;
   min-height: 2.25rem;
 }
 
 .filter-field-matched .filter-checkbox-label input[type="checkbox"] {
-  width: auto;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
+  margin: 0;
 }
 
-/* Stĺpce transfer tabuľky */
-.transfer-table .tr-col-date {
-  width: 5.5rem;
+/* ============================================================
+   Tabuľky
+   ============================================================ */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.table-header h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.table-count-label {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--subtle);
+  letter-spacing: 0;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-direction: row-reverse;
+}
+
+#selected-count:not(:empty),
+#transfer-selected-count:not(:empty) {
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 -1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  font-weight: 600;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--subtle);
   white-space: nowrap;
+  background: var(--surface-alt);
+}
+
+th:first-child,
+td:first-child {
+  padding-left: 1.5rem;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 1.5rem;
+}
+
+tbody tr {
+  transition: background 0.12s;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--surface-alt);
+}
+
+tbody tr.selected,
+tbody tr.selected:hover {
+  background: var(--brand-tint);
+}
+
+td input[type="checkbox"],
+th input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-icon {
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+/* Tabuľka dokladov – kompaktný dvojriadkový vzhľad */
+.invoices-table {
+  table-layout: fixed;
+  font-size: 0.875rem;
+}
+
+.invoices-table th,
+.invoices-table td {
   vertical-align: top;
 }
 
+.invoices-table td {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.invoices-table .col-check {
+  width: 3.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.invoices-table .col-doc {
+  min-width: 0;
+  width: auto;
+}
+
+.invoices-table .col-dates {
+  width: 11rem;
+}
+
+.invoices-table .col-sum {
+  width: 9rem;
+  text-align: right;
+}
+
+.invoices-table .col-sum .cell-sum-doc {
+  font-size: 0.8125rem;
+  color: var(--subtle);
+  font-weight: 400;
+}
+
+.invoices-table .col-sum .cell-l2 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.invoices-table .col-vs {
+  width: 7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoices-table .col-action {
+  width: 8rem;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.invoices-table .cell-l1,
+.invoices-table .cell-l2 {
+  display: block;
+  line-height: 1.4;
+}
+
+.invoices-table .cell-l1 {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.invoices-table .cell-l2 {
+  font-size: 0.8125rem;
+  color: var(--subtle);
+  margin-top: 0.125rem;
+}
+
+.invoices-table .col-doc .cell-l1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.invoices-table .col-dates .cell-l2::before {
+  content: 'Splatnosť ';
+  color: var(--faint);
+}
+
+.invoices-table .cell-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+.invoices-table .btn-pay-one,
+.invoices-table .btn-transfer-one {
+  height: 32px;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+}
+
+/* Riadková akcia: obrysová, aby dominovala hromadná akcia dole */
+.invoices-table .btn-primary {
+  background: var(--surface);
+  color: var(--brand);
+  border-color: var(--brand-tint-line);
+  box-shadow: none;
+}
+
+.invoices-table .btn-primary:hover:not(:disabled) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.invoices-table .btn-primary:disabled {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--faint);
+}
+
+.invoices-table tr.row-paid,
+.invoices-table tr.row-paid:hover {
+  background: rgba(22, 163, 74, 0.05);
+}
+
+.invoices-table tr.row-paid td {
+  color: var(--subtle);
+}
+
+.invoices-table tr.row-paid .cell-l1,
+.invoices-table tr.row-paid .col-sum .cell-l2 {
+  color: var(--muted);
+}
+
+/* Mobilné zúženie stĺpcov pre .invoices-table je vylúčené: #invoices-table a #transfer-table majú vlastné karty v @media (max-width: 768px) nižšie. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-expense {
+  background: var(--amber-tint);
+  border-color: var(--amber-line);
+  color: var(--amber-ink);
+}
+
+.badge-invoice {
+  background: var(--green-tint);
+  border-color: var(--green-line);
+  color: var(--green-ink);
+}
+
+.loading, .empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--subtle);
+  font-size: 0.875rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+}
+
+.loading::before {
+  content: '';
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto 0.75rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hlásenia */
+.error-box, .result-box {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: var(--surface-alt) no-repeat 0.875rem 0.875rem / 16px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.error-box,
+.result-box.error {
+  background-color: var(--red-tint);
+  border-color: var(--red-line);
+  color: var(--red-ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B91C1C' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E");
+}
+
+.result-box.success {
+  background-color: #f0fdf4;
+  border-color: var(--green-line);
+  color: var(--green-ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315803D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.75 2.75L16 10'/%3E%3C/svg%3E");
+}
+
+.result-box.warning {
+  background-color: var(--amber-tint);
+  border-color: var(--amber-line);
+  color: var(--amber-ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20h19z'/%3E%3Cpath d='M12 10v4.5M12 17.5v.01'/%3E%3C/svg%3E");
+}
+
+/* Stránkovanie */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 -1.5rem -1.25rem;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface-alt);
+  border-radius: 0 0 var(--radius) var(--radius);
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  height: 32px;
+  padding: 0 0.75rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--surface-alt);
+  border-color: var(--faint);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: var(--subtle);
+  font-size: 0.8125rem;
+}
+
+/* Spodná akčná lišta (Uhradiť / Previesť vybrané) */
+.action-bar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 10;
+  padding: 1rem 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.pay-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.action-bar .result-box {
+  margin-top: 0.75rem;
+}
+
+/* Log API volaní */
+.api-log-actions {
+  margin-bottom: 0.75rem;
+}
+
+.api-log {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  background: var(--dark, #0f172a);
+  color: #cbd5e1;
+  border-radius: var(--radius-sm);
+  padding: 0.875rem 1rem;
+  margin: 0;
+  max-height: 20rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.api-log:empty::before {
+  content: 'Zatiaľ žiadne volania.';
+  color: var(--faint);
+}
+
+/* ============================================================
+   Výber modulu
+   ============================================================ */
+#module-picker {
+  display: flex;
+  justify-content: center;
+  padding-top: 2rem;
+}
+
+.module-picker-wrap {
+  width: 100%;
+  max-width: 720px;
+}
+
+.picker-hero {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.picker-hero h1 {
+  font-size: clamp(1.875rem, 4.5vw, 2.5rem);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.picker-lead {
+  max-width: 540px;
+  margin: 0.875rem auto 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.module-kros-connect {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  max-width: 440px;
+  margin: 0 auto 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.connect-head {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.connect-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-tint-line);
+  color: var(--brand);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.connect-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.connect-sub {
+  font-size: 0.8125rem;
+  color: var(--subtle);
+}
+
+.module-kros-connect .btn-primary {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  pointer-events: auto !important;
+}
+
+.module-kros-connect .result-box,
+.module-kros-connect .error-box {
+  margin: 0 0 1rem;
+}
+
+.module-kros-connect-note {
+  margin: 0.875rem 0 0;
+  line-height: 1.5;
+  color: var(--subtle);
+}
+
+#module-picker-error {
+  max-width: 440px;
+  margin: -1rem auto 2rem;
+}
+
+.module-picker-locked-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  margin: 0 auto 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--subtle);
+}
+
+.module-picker-locked-hint svg {
+  font-size: 0.9375rem;
+  color: var(--faint);
+}
+
+.module-company-switcher {
+  max-width: 440px;
+  margin: 0 auto 2rem;
+}
+
+.module-company-switcher label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--subtle);
+  margin-bottom: 0.5rem;
+}
+
+.select-with-icon {
+  position: relative;
+}
+
+.select-with-icon .select-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--brand);
+  pointer-events: none;
+}
+
+.module-company-switcher select {
+  height: 48px;
+  padding-left: 2.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-radius: 10px;
+  box-shadow: var(--shadow-xs);
+}
+
+.module-company-switcher .result-box {
+  margin-top: 0.75rem;
+}
+
+.module-picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .module-picker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn-module {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s;
+}
+
+.btn-module:hover {
+  border-color: var(--brand-tint-line);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-module-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-tint-line);
+  color: var(--brand);
+  font-size: 22px;
+}
+
+.btn-module-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.btn-module-title {
+  font-family: var(--display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.btn-module-desc {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.btn-module-arrow {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: inline-flex;
+  color: var(--faint);
+  font-size: 18px;
+  transition: color 0.15s, transform 0.2s;
+}
+
+.btn-module:hover .btn-module-arrow {
+  color: var(--brand);
+  transform: translateX(2px);
+}
+
+.btn-module.btn-module--locked,
+.btn-module:disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+  background: var(--surface-alt);
+  border-style: dashed;
+  border-color: var(--line-strong);
+  /* Inak môže „chytiť“ klik nad tlačidlom Prepojiť (prekrytie) a nič sa nestane. */
+  pointer-events: none;
+}
+
+.btn-module:disabled .btn-module-icon {
+  background: var(--slate-tint);
+  border-color: var(--line);
+  color: var(--faint);
+}
+
+.btn-module:disabled .btn-module-title,
+.btn-module:disabled .btn-module-desc {
+  color: var(--faint);
+}
+
+.btn-module:disabled .btn-module-arrow {
+  display: none;
+}
+
+.btn-module.btn-module--locked:hover,
+.btn-module:disabled:hover {
+  transform: none;
+}
+
+.module-picker-footer {
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================================
+   Prevod medzi účtami – tabuľka
+   ============================================================ */
+.transfer-table .tr-col-date {
+  width: 7rem;
+  white-space: nowrap;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+}
+
 .transfer-table .tr-col-partner {
-  width: 15.5rem;
+  width: auto;
   min-width: 0;
   vertical-align: top;
 }
 
 .transfer-table .tr-col-vs {
-  width: 10.5rem;
+  width: 11rem;
   vertical-align: top;
 }
 
 .transfer-table .tr-col-sum {
-  width: 7rem;
+  width: 9rem;
   text-align: right;
   vertical-align: top;
   white-space: nowrap;
 }
 
 .transfer-table .tr-col-transferred {
-  width: 2.5rem;
+  width: 3.5rem;
   text-align: center;
   vertical-align: middle;
 }
 
 .transfer-table .col-action {
-  width: 5.5rem;
-  text-align: center;
+  width: 8rem;
+  text-align: right;
   vertical-align: middle;
 }
 
 /* Partner a správa v bunke */
 .tr-partner-name {
   font-weight: 600;
-  color: var(--text);
+  color: var(--ink);
 }
 
 .tr-note {
   font-weight: 400;
-  color: var(--text-muted);
-  font-size: 0.85em;
+  color: var(--subtle);
+  font-size: 0.8125rem;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 28rem;
-  margin-top: 0.1rem;
+  max-width: 100%;
+  margin-top: 0.125rem;
 }
 
 /* Farby sumy */
-.sum-positive {
-  color: var(--success);
+.sum-positive,
+.invoices-table .sum-positive {
+  color: var(--green-ink);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.sum-negative {
-  color: var(--error);
+.sum-negative,
+.invoices-table .sum-negative {
+  color: var(--red-ink);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Ikony prevedené / neprevedené */
-.icon-transferred {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
-  background: #d1fae5;
-  color: var(--success);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
+.icon-transferred,
 .icon-not-transferred {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: 50%;
-  background: var(--bg);
-  color: #cbd5e1;
-  font-size: 0.85rem;
-  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.icon-transferred {
+  background: var(--green-tint);
+  color: var(--green-ink);
+  border: 1px solid var(--green-line);
+}
+
+.icon-not-transferred {
+  background: var(--surface);
+  color: var(--line-strong);
+  border: 1px solid var(--line);
 }
 
 .transfer-table tr.row-transferred td {
-  color: var(--text-muted);
+  color: var(--subtle);
 }
 
-.transfer-table tr.row-transferred {
-  background: rgba(5, 150, 105, 0.04);
+.transfer-table tr.row-transferred,
+.transfer-table tr.row-transferred:hover {
+  background: rgba(22, 163, 74, 0.04);
 }
 
 .transfer-table tr.row-transferred .tr-partner-name {
-  color: var(--text-muted);
+  color: var(--muted);
   font-weight: 500;
 }
 
@@ -1125,124 +1555,218 @@ td input[type="checkbox"] {
   display: none;
 }
 
-/* Zoznam platieb (prevod): na úzkych obrazovkách karty namiesto horizontálne stlačenej tabuľky */
+/* ============================================================
+   Mobil – karty namiesto tabuliek
+   ============================================================ */
 @media (max-width: 768px) {
-  #transfer-table-wrap {
+  .topbar-inner {
+    padding: 0 1rem;
+    height: 56px;
+  }
+
+  .brand-sep,
+  .brand-site {
+    display: none;
+  }
+
+  #app {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .main-header {
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+  }
+
+  .main-header-sub {
+    font-size: 0.875rem;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .panel-toggle {
+    padding: 0.75rem 1rem;
+  }
+
+  .panel-collapsible-content {
+    padding: 1rem;
+  }
+
+  .filters-panel {
+    padding: 1rem;
+  }
+
+  .action-bar {
+    bottom: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .action-bar .btn {
+    width: 100%;
+  }
+
+  .pagination {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    border-top: none;
+    background: transparent;
+  }
+
+  .table-wrap {
+    margin: 0;
+    border-top: none;
+  }
+
+  .table-header {
+    margin-bottom: 0.75rem;
+  }
+
+  #transfer-table-wrap,
+  #invoices-table-wrap {
     overflow-x: visible;
   }
 
-  .transfer-thead-check-caption {
+  .transfer-thead-check-caption,
+  .invoices-thead-check-caption {
     display: inline;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 500;
-    color: var(--text-muted);
-    margin-left: 0.15rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
   }
 
-  .transfer-table {
+  .transfer-table,
+  #invoices-table {
     display: block;
     width: 100%;
     table-layout: auto;
     font-size: 0.875rem;
   }
 
-  .transfer-table thead {
+  .transfer-table thead,
+  #invoices-table thead {
     display: block;
     width: 100%;
   }
 
-  .transfer-table thead tr {
+  .transfer-table thead tr,
+  #invoices-table thead tr {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.35rem 0 0.65rem;
-    margin-bottom: 0.35rem;
-    border-bottom: 1px solid var(--border);
+    padding: 0 0 0.75rem;
+    margin-bottom: 0.25rem;
   }
 
-  .transfer-table thead th {
+  .transfer-table thead th,
+  #invoices-table thead th {
     border-bottom: none;
     padding: 0;
     white-space: normal;
+    background: transparent;
   }
 
-  .transfer-table thead th:not(.col-check) {
+  .transfer-table thead th:not(.col-check),
+  #invoices-table thead th:not(.col-check) {
     display: none;
   }
 
-  .transfer-table thead th.col-check {
+  .transfer-table thead th.col-check,
+  #invoices-table thead th.col-check {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.5rem;
     width: auto;
     text-align: left;
     vertical-align: middle;
   }
 
-  .transfer-table tbody {
+  .transfer-table tbody,
+  #invoices-table tbody {
     display: block;
     width: 100%;
   }
 
-  .transfer-table tbody tr {
+  .transfer-table tbody tr,
+  #invoices-table tbody tr {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: start;
-    gap: 0.45rem 0.65rem;
-    padding: 0.75rem;
-    margin-bottom: 0.65rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    gap: 0.5rem 0.75rem;
+    padding: 0.875rem;
+    margin-bottom: 0.625rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
   }
 
-  .transfer-table tbody tr.row-transferred {
-    background: rgba(5, 150, 105, 0.06);
-    border-color: var(--success);
-  }
-
-  .transfer-table tbody tr:last-child {
+  .transfer-table tbody tr:last-child,
+  #invoices-table tbody tr:last-child {
     margin-bottom: 0;
   }
 
-  .transfer-table tbody td {
+  .transfer-table tbody td,
+  #invoices-table tbody td {
     border-bottom: none;
     padding: 0;
   }
 
-  .transfer-table tbody tr:not(.row-transferred):hover {
-    background: var(--bg);
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  .transfer-table tbody tr:hover,
+  #invoices-table tbody tr:hover {
+    background: var(--surface);
   }
 
-  .transfer-table tbody tr.row-transferred:hover {
-    background: rgba(5, 150, 105, 0.1);
-    border-color: var(--success);
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  .transfer-table tbody tr.row-transferred,
+  .transfer-table tbody tr.row-transferred:hover,
+  #invoices-table tbody tr.row-paid,
+  #invoices-table tbody tr.row-paid:hover {
+    background: #f0fdf4;
+    border-color: var(--green-line);
   }
 
-  .transfer-table tbody tr.selected {
-    border-color: #93c5fd;
-    background: #eff6ff;
-    box-shadow: none;
+  .transfer-table tbody tr.selected,
+  #invoices-table tbody tr.selected {
+    border-color: var(--brand);
+    background: var(--brand-tint);
+    box-shadow: 0 0 0 1px var(--brand);
   }
 
-  .transfer-table tbody tr.selected.row-transferred {
-    background: #e0f2fe;
-    border-color: #7dd3fc;
-    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35), 0 1px 2px rgba(15, 23, 42, 0.06);
+  .transfer-table tbody tr.selected.row-transferred,
+  #invoices-table tbody tr.selected.row-paid {
+    background: #f0fdf4;
+    border-color: var(--green);
+    box-shadow: 0 0 0 1px var(--green);
   }
 
-  .transfer-table tbody td.col-check {
+  .transfer-table tbody td.col-check,
+  #invoices-table tbody td.col-check {
     display: none;
   }
 
+  /* Desktopové šírky stĺpcov by inak rozťahovali mriežku karty */
+  .transfer-table tbody td,
+  #invoices-table tbody td {
+    width: auto;
+    min-width: 0;
+  }
+
+  /* --- Prevod --- */
   .transfer-table .tr-col-date {
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
     white-space: normal;
+    align-self: center;
+    color: var(--subtle);
+    font-size: 0.8125rem;
   }
 
   .transfer-table .tr-col-sum {
@@ -1251,6 +1775,7 @@ td input[type="checkbox"] {
     text-align: right;
     align-self: center;
     white-space: nowrap;
+    font-size: 1rem;
   }
 
   /* Stav „prevedené“: bez ikony – zelený rám + podfarbenie */
@@ -1269,16 +1794,19 @@ td input[type="checkbox"] {
     display: none;
   }
 
-  .transfer-table .col-action {
+  .transfer-table .col-action,
+  #invoices-table .col-action {
     grid-column: 1 / -1;
     grid-row: 3;
     width: 100%;
+    padding-top: 0.25rem;
   }
 
-  .transfer-table .btn-transfer-one {
+  .transfer-table .btn-transfer-one,
+  #invoices-table .btn-pay-one {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+    height: 38px;
+    font-size: 0.875rem;
   }
 
   .transfer-table .tr-note {
@@ -1288,128 +1816,16 @@ td input[type="checkbox"] {
     max-width: none;
   }
 
-  /* Zoznam faktúr (úhrada): rovnaký kartový mobile layout ako prevod */
-  #invoices-table-wrap {
-    overflow-x: visible;
-  }
-
-  .invoices-thead-check-caption {
-    display: inline;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    margin-left: 0.15rem;
-  }
-
-  #invoices-table {
-    display: block;
-    width: 100%;
-    table-layout: auto;
-    font-size: 0.875rem;
-  }
-
-  #invoices-table thead {
-    display: block;
-    width: 100%;
-  }
-
-  #invoices-table thead tr {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0 0.65rem;
-    margin-bottom: 0.35rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  #invoices-table thead th {
-    border-bottom: none;
-    padding: 0;
-    white-space: normal;
-  }
-
-  #invoices-table thead th:not(.col-check) {
-    display: none;
-  }
-
-  #invoices-table thead th.col-check {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    width: auto;
-    text-align: left;
-    vertical-align: middle;
-  }
-
-  #invoices-table tbody {
-    display: block;
-    width: 100%;
-  }
-
-  #invoices-table tbody tr {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: start;
-    gap: 0.45rem 0.65rem;
-    padding: 0.75rem;
-    margin-bottom: 0.65rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-  }
-
-  #invoices-table tbody tr.row-paid {
-    background: rgba(13, 150, 104, 0.08);
-    border-color: var(--success);
-  }
-
-  #invoices-table tbody tr:last-child {
-    margin-bottom: 0;
-  }
-
-  #invoices-table tbody td {
-    border-bottom: none;
-    padding: 0;
-  }
-
-  #invoices-table tbody tr:not(.row-paid):hover {
-    background: var(--bg);
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
-  }
-
-  #invoices-table tbody tr.row-paid:hover {
-    background: rgba(13, 150, 104, 0.12);
-    border-color: var(--success);
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
-  }
-
-  #invoices-table tbody tr.selected {
-    border-color: #93c5fd;
-    background: #eff6ff;
-    box-shadow: none;
-  }
-
-  #invoices-table tbody tr.selected.row-paid {
-    background: #e0f2fe;
-    border-color: #7dd3fc;
-    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35), 0 1px 2px rgba(15, 23, 42, 0.06);
-  }
-
-  #invoices-table tbody td.col-check {
-    display: none;
-  }
-
-  /* Dátumy: jedna línia, bez veľkých nadpisov (desktop „Splatn.:“ sa tu prepíše) */
+  /* --- Úhrada faktúr --- */
   #invoices-table .col-dates {
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
     align-self: center;
     white-space: normal;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     line-height: 1.35;
-    color: var(--text);
+    color: var(--subtle);
   }
 
   #invoices-table .col-dates .cell-l1,
@@ -1422,10 +1838,9 @@ td input[type="checkbox"] {
   }
 
   #invoices-table .col-dates .cell-l2::before {
-    content: " · spl. ";
-    color: var(--text-muted);
+    content: " · splatnosť ";
+    color: var(--faint);
     font-weight: 400;
-    font-size: 0.92em;
   }
 
   /* Sumy: na mobile len k úhrade (riadok „celkom dokladu“ je v title na td) */
@@ -1443,10 +1858,10 @@ td input[type="checkbox"] {
 
   #invoices-table .col-sum .cell-l2 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1.0625rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: var(--text);
+    color: var(--ink);
   }
 
   #invoices-table .col-doc {
@@ -1460,7 +1875,6 @@ td input[type="checkbox"] {
     flex-wrap: nowrap;
     align-items: center;
     gap: 0;
-    padding-top: 0.05rem;
   }
 
   /* Jedna línia: partner (priorita) | doklad (menší, vedľajší) */
@@ -1470,8 +1884,8 @@ td input[type="checkbox"] {
     min-width: 0;
     margin-top: 0;
     font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text);
+    font-size: 0.9375rem;
+    color: var(--ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1481,32 +1895,26 @@ td input[type="checkbox"] {
     order: 2;
     flex: 0 1 auto;
     min-width: 0;
-    max-width: 42%;
+    max-width: 48%;
     margin-top: 0;
-    padding-left: 0.45rem;
-    margin-left: 0.35rem;
-    border-left: 1px solid var(--border);
-    font-size: 0.78rem;
+    padding-left: 0.5rem;
+    margin-left: 0.5rem;
+    border-left: 1px solid var(--line);
+    font-size: 0.8125rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--subtle);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+  }
+
+  #invoices-table .col-doc .cell-l1 .badge {
+    vertical-align: 1px;
+    margin-left: 0.25rem;
   }
 
   #invoices-table .col-vs {
     display: none;
-  }
-
-  #invoices-table .col-action {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    width: 100%;
-  }
-
-  #invoices-table .btn-pay-one {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
   }
 }
