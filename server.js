@@ -311,6 +311,9 @@ app.post('/api/payments/batch', (req, res, next) => {
       res.status(krosRes.status);
       const contentType = krosRes.headers.get('content-type');
       if (contentType) res.setHeader('Content-Type', contentType);
+      // Pri 429 KROS hovorí, koľko sekúnd počkať – klient podľa toho opakuje požiadavku
+      const retryAfter = krosRes.headers.get('retry-after');
+      if (retryAfter) res.setHeader('Retry-After', retryAfter);
       res.send(text);
     }
 
@@ -374,6 +377,9 @@ app.get('/api/payments', async (req, res) => {
     if (!krosRes.ok) {
       const contentType = krosRes.headers.get('content-type');
       if (contentType) res.setHeader('Content-Type', contentType);
+      // Pri 429 KROS hovorí, koľko sekúnd počkať – klient podľa toho opakuje požiadavku
+      const retryAfter = krosRes.headers.get('retry-after');
+      if (retryAfter) res.setHeader('Retry-After', retryAfter);
       return res.status(krosRes.status).send(text);
     }
 
@@ -449,6 +455,9 @@ app.get('/api/invoices', async (req, res) => {
       if (!krosRes.ok) {
         const contentType = krosRes.headers.get('content-type');
         if (contentType) res.setHeader('Content-Type', contentType);
+        // Pri 429 KROS hovorí, koľko sekúnd počkať – klient podľa toho opakuje požiadavku
+        const retryAfter = krosRes.headers.get('retry-after');
+        if (retryAfter) res.setHeader('Retry-After', retryAfter);
         return res.status(krosRes.status).send(text);
       }
 

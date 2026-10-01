@@ -277,29 +277,132 @@ async function apiCall(path, options = {}, logId = 'api-log') {
   if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
-  const res = await fetch(pathPart, {
-    ...options,
-    headers,
-    body: bodySerialized,
-  });
-  const text = await res.text();
+  let res;
+  let text;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      res = await fetch(pathPart, {
+        ...options,
+        headers,
+        body: bodySerialized,
+      });
+    } catch (netErr) {
+      // Server nedostupný / výpadok siete – fetch nevráti žiadny HTTP status
+      appendApiLog('  → sieťová chyba: ' + (netErr?.message || netErr), logId);
+      const err = new Error(netErr?.message || 'Network error');
+      err.name = netErr?.name || 'Error';
+      err.status = netErr?.name === 'TimeoutError' || netErr?.name === 'AbortError' ? 'timeout' : 'network';
+      err.method = method;
+      err.path = pathPart;
+      throw err;
+    }
+    text = await res.text();
+    appendApiLog('  → ' + res.status + (res.statusText ? ' ' + res.statusText : ''), logId);
+
+    // KROS API obmedzuje počet požiadaviek za čas. Čítanie (GET) je bezpečné zopakovať,
+    // zápisy (POST) nie – tie by sa mohli zapísať dvakrát.
+    if (res.status === 429 && method === 'GET' && attempt < API_RATE_LIMIT_RETRIES) {
+      const waitSec = retryAfterSeconds(res.headers.get('retry-after'), attempt);
+      appendApiLog(`  KROS API hlási príliš veľa požiadaviek – čakám ${waitSec} s a skúšam znova (${attempt + 1}/${API_RATE_LIMIT_RETRIES})`, logId);
+      await new Promise(r => setTimeout(r, waitSec * 1000));
+      continue;
+    }
+    break;
+  }
   let data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch (_) {}
-  appendApiLog('  → ' + res.status + (res.statusText ? ' ' + res.statusText : ''), logId);
   if (!res.ok && text) {
     const errPreview = text.length > 500 ? text.slice(0, 500) + '…' : text;
     appendApiLog('  Odpoveď: ' + errPreview.replace(/\n/g, ' '), logId);
   }
   if (!res.ok) {
-    const err = new Error(data?.error || data?.detail || data?.title || `HTTP ${res.status}`);
+    const err = new Error(data?.error || data?.detail || data?.title || data?.message || `HTTP ${res.status}`);
     err.status = res.status;
+    err.statusText = res.statusText;
     err.data = data;
     err.retryAfter = res.headers.get('retry-after');
+    err.method = method;
+    err.path = pathPart;
     throw err;
   }
   return data;
+}
+
+const API_RATE_LIMIT_RETRIES = 3;
+
+/** Retry-After môže byť počet sekúnd alebo HTTP dátum; bez neho čakáme 2, 4, 8 s. */
+function retryAfterSeconds(header, attempt) {
+  const fallback = 2 ** (attempt + 1);
+  if (!header) return fallback;
+  let sec = Number(header);
+  if (!Number.isFinite(sec)) {
+    const at = Date.parse(header);
+    sec = Number.isFinite(at) ? Math.ceil((at - Date.now()) / 1000) : fallback;
+  }
+  return Math.min(Math.max(sec, 1), 30);
+}
+
+/** Zrozumiteľné vysvetlenie HTTP chyby: čo sa stalo a čo s tým robiť. */
+const API_ERROR_EXPLANATIONS = {
+  network: ['Server aplikácie je nedostupný', 'Požiadavka sa nedostala na server. Skontrolujte pripojenie k internetu, prípadne či aplikácia beží, a skúste to znova.'],
+  timeout: ['Požiadavka trvala príliš dlho', 'Server neodpovedal včas. Skúste to znova o chvíľu.'],
+  400: ['KROS odmietol požiadavku ako neplatnú', 'Niektoré odoslané údaje nemajú správny tvar alebo chýbajú. Podrobnosti sú nižšie.'],
+  401: ['Prepojenie s KROS vypršalo alebo je neplatné', 'Prepojte aplikáciu s KROS znova.'],
+  403: ['Na túto akciu nemáte v KROS oprávnenie', 'Skontrolujte, či má firma aktívnu licenciu na API a či prepojenie povoľuje prístup k platbám a dokladom.'],
+  404: ['Požadovaný záznam v KROS neexistuje', 'Účet alebo doklad mohol byť medzičasom zmazaný. Obnovte zoznam a skúste to znova.'],
+  408: ['KROS API neodpovedalo včas', 'Skúste to znova o chvíľu. Ak išlo o úhradu, pred opakovaním skontrolujte v KROS, či sa medzičasom nezapísala.'],
+  409: ['Rovnaká požiadavka bola odoslaná pred chvíľou', 'KROS ju odmietol ako duplicitnú, aby sa platba nezapísala dvakrát. Počkajte asi 2 minúty a skúste to znova.'],
+  413: ['Požiadavka je príliš veľká', 'Skúste naraz spracovať menej položiek.'],
+  422: ['KROS nevie požiadavku spracovať', 'Údaje majú správny tvar, ale KROS ich nemôže prijať (napr. doklad je už uhradený). Podrobnosti sú nižšie.'],
+  429: ['KROS API dočasne obmedzilo počet požiadaviek', 'Za krátky čas odišlo priveľa požiadaviek na KROS. Aplikácia to skúsila automaticky zopakovať, ale limit ešte neuplynul. Počkajte chvíľu a skúste to znova.'],
+  500: ['Chyba na strane KROS API', 'Problém nie je vo vašich údajoch. Skúste to znova o chvíľu; ak pretrváva, kontaktujte podporu KROS.'],
+  502: ['KROS API je dočasne nedostupné', 'Server aplikácie sa nevedel spojiť s KROS alebo dostal nezmyselnú odpoveď. Skúste to znova o chvíľu.'],
+  503: ['KROS API je dočasne nedostupné', 'Služba je preťažená alebo prebieha údržba. Skúste to znova o pár minút.'],
+  504: ['KROS API neodpovedalo včas', 'Skúste to znova o chvíľu.'],
+};
+
+/** Typ hlásenia: dočasné problémy (dá sa zopakovať) sú varovanie, ostatné chyba. */
+function apiErrorType(e) {
+  return [408, 409, 429, 503, 504, 'timeout'].includes(e?.status) ? 'warning' : 'error';
+}
+
+/** Krátky jednoriadkový popis (do zoznamov pri hromadných akciách). */
+function apiErrorShort(e) {
+  const known = API_ERROR_EXPLANATIONS[e?.status];
+  const code = typeof e?.status === 'number' ? ` (HTTP ${e.status})` : '';
+  return (known ? known[0] : (e?.message || 'Neznáma chyba')) + code;
+}
+
+/** Plné HTML hlásenie: vysvetlenie + technické detaily. Všetok text je escapovaný. */
+function formatApiError(e, action) {
+  const status = e?.status;
+  const known = API_ERROR_EXPLANATIONS[status]
+    || (typeof status === 'number' && status >= 500 ? API_ERROR_EXPLANATIONS[500] : null)
+    || (typeof status === 'number' && status >= 400 ? ['KROS odmietol požiadavku', 'Podrobnosti sú v technickom popise nižšie.'] : null)
+    || ['Neočakávaná chyba', 'Podrobnosti sú v technickom popise nižšie.'];
+
+  let html = `<strong>${escapeHtml((action ? action + ': ' : '') + known[0])}.</strong> ${escapeHtml(known[1])}`;
+
+  const validation = Array.isArray(e?.data?.errors) ? e.data.errors : [];
+  if (validation.length) {
+    html += '<ul class="error-list">' + validation.map(x =>
+      `<li>${x.propertyPath ? `<code>${escapeHtml(x.propertyPath)}</code> ` : ''}${escapeHtml(x.errorMessage || x.message || '')}</li>`
+    ).join('') + '</ul>';
+  }
+
+  const tech = [];
+  if (typeof status === 'number') tech.push(`HTTP ${status}${e.statusText ? ' ' + e.statusText : ''}`);
+  else if (status === 'network') tech.push('sieťová chyba (bez odpovede servera)');
+  else if (status === 'timeout') tech.push('timeout');
+  if (e?.method && e?.path) tech.push(`${e.method} ${e.path.split('?')[0]}`);
+  const serverMsg = e?.message && e.message !== `HTTP ${status}` ? e.message : '';
+  if (serverMsg) tech.push(`odpoveď: „${serverMsg.length > 300 ? serverMsg.slice(0, 300) + '…' : serverMsg}“`);
+  if (e?.retryAfter) tech.push(`Retry-After: ${e.retryAfter} s`);
+  if (e?.data?.requestId) tech.push(`requestId: ${e.data.requestId}`);
+  if (tech.length) html += `<span class="error-tech">Technicky: ${escapeHtml(tech.join(' · '))}</span>`;
+  return html;
 }
 
 function apiCallTransfer(path, options = {}) {
@@ -615,10 +718,11 @@ function readKrosConnections() {
   }
 }
 
-function showModulePickerInfo(msg, type = 'success') {
+function showModulePickerInfo(msg, type = 'success', isHtml = false) {
   const el = document.getElementById('module-picker-info');
   if (!el) return;
-  el.textContent = msg;
+  if (isHtml) el.innerHTML = msg;
+  else el.textContent = msg;
   el.className = 'result-box ' + type;
   el.hidden = false;
 }
@@ -896,7 +1000,7 @@ async function connect() {
       showError('module-picker-error',
         'KROS API vrátilo 404. Skontrolujte: 1) či beží server (npm start) a otvárate http://localhost:3000, 2) či je dostupné production API (https://api-economy.kros.sk).');
     } else {
-      showError('module-picker-error', e.message || 'Pripojenie zlyhalo.');
+      showError('module-picker-error', formatApiError(e, 'Prepojenie zlyhalo'), true);
     }
   } finally {
     resetKrosConnectButton();
@@ -931,16 +1035,18 @@ async function handleModuleCompanyChange() {
     persistToken();
     const msg = e?.status === 401
       ? `Prepnutie zlyhalo: token pre firmu ${company.companyName} je neplatný.`
-      : `Prepnutie zlyhalo: ${e?.message || 'neznáma chyba'}`;
-    showModulePickerInfo(msg, 'error');
+      : null;
+    if (msg) showModulePickerInfo(msg, 'error');
+    else showModulePickerInfo(formatApiError(e, 'Prepnutie firmy zlyhalo'), apiErrorType(e), true);
     renderModuleCompanySwitcher();
   }
 }
 
-function showError(id, msg) {
+function showError(id, msg, isHtml = false) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = msg;
+  if (isHtml) el.innerHTML = msg;
+  else el.textContent = msg;
   el.hidden = false;
   el.className = 'error-box';
 }
@@ -1005,8 +1111,9 @@ async function loadAccounts() {
     const saved = (() => { try { const r = localStorage.getItem(STORAGE_SETTINGS); return r ? JSON.parse(r) : null; } catch (_) { return null; } })();
     if (saved?.account) sel.value = saved.account;
   } catch (e) {
-    sel.innerHTML = '<option value="">Chyba načítania účtov</option>';
+    sel.innerHTML = '<option value="">Účty sa nepodarilo načítať</option>';
     if (e.status === 401) showDisconnectedModulePicker();
+    else showResult('submit-result', formatApiError(e, 'Bankové účty sa nepodarilo načítať'), apiErrorType(e));
   }
 }
 
@@ -1119,7 +1226,7 @@ async function loadInvoices(skip = 0) {
         ? apiCall('/api/expenses?' + expenseParams.toString(), { method: 'GET' }).catch((e) => {
             if (e.status === 401) throw e;
             // Výdavky nemusia byť dostupné (napr. modul bez výdavkov) – faktúry zobrazíme aj tak.
-            appendApiLog('  Výdavky sa nepodarilo načítať: ' + (e.message || e.status));
+            appendApiLog('  Výdavky sa nepodarilo načítať: ' + apiErrorShort(e) + (e.message ? ' – ' + e.message : ''));
             return null;
           })
         : Promise.resolve(null),
@@ -1147,8 +1254,9 @@ async function loadInvoices(skip = 0) {
     renderPagination(skip, hasMore);
   } catch (e) {
     document.getElementById('invoices-loading').hidden = true;
-    document.getElementById('invoices-empty').hidden = false;
-    document.getElementById('invoices-empty').textContent = 'Chyba: ' + (e.message || e.status);
+    const emptyEl = document.getElementById('invoices-empty');
+    emptyEl.hidden = false;
+    emptyEl.innerHTML = `<div class="result-box ${apiErrorType(e)}">${formatApiError(e, 'Doklady sa nepodarilo načítať')}</div>`;
     if (e.status === 401) showDisconnectedModulePicker();
   }
 }
@@ -1358,18 +1466,7 @@ async function paySingleInvoice(inv) {
       btn.textContent = originalText;
     }
     if (e.status === 401) showDisconnectedModulePicker();
-    else if (e.status === 408) {
-      showResult('submit-result', 'Vypršal časový limit požiadavky (408). KROS API neodpovedalo včas. Skúste to znova o chvíľu.', 'warning');
-    } else if (e.status === 409) {
-      showResult('submit-result', 'Duplicitná požiadavka. Počkajte cca 120 s a skúste znova.', 'warning');
-    } else if (e.status === 429) {
-      showResult('submit-result', 'Príliš veľa požiadaviek (429). Počkajte a skúste znova.', 'warning');
-    } else if (e.status === 400 && e.data?.errors) {
-      const list = e.data.errors.map(x => `${x.propertyPath || '?'}: ${x.errorMessage || ''}`).join('<br>');
-      showResult('submit-result', 'Chyby:<br>' + list, 'error');
-    } else {
-      showResult('submit-result', 'Chyba: ' + (e.message || e.status), 'error');
-    }
+    else showResult('submit-result', formatApiError(e, 'Úhrada sa neodoslala'), apiErrorType(e));
   }
 }
 
@@ -1423,29 +1520,7 @@ async function submitPayments() {
       showDisconnectedModulePicker();
       return;
     }
-    if (e.status === 408) {
-      showResult('submit-result',
-        'Vypršal časový limit požiadavky (408). KROS API neodpovedalo včas. Skúste to znova o chvíľu.',
-        'warning');
-      return;
-    }
-    if (e.status === 409) {
-      showResult('submit-result',
-        'Duplicitná požiadavka. Rovnaký request bol nedávno odoslaný. Počkajte cca 120 s a skúste znova.',
-        'warning');
-      return;
-    }
-    if (e.status === 429) {
-      const retry = e.retryAfter || e.data?.retryAfter || '60';
-      showResult('submit-result', `Príliš veľa požiadaviek (429). Počkajte ${retry} s a skúste znova.`, 'warning');
-      return;
-    }
-    if (e.status === 400 && e.data?.errors) {
-      const list = e.data.errors.map(x => `${x.propertyPath || '?'}: ${x.errorMessage || ''}`).join('<br>');
-      showResult('submit-result', 'Validačné chyby:<br>' + list, 'error');
-      return;
-    }
-    showResult('submit-result', 'Chyba: ' + (e.message || e.status), 'error');
+    showResult('submit-result', formatApiError(e, 'Úhrady sa neodoslali'), apiErrorType(e));
   } finally {
     btn.disabled = false;
   }
@@ -1705,9 +1780,10 @@ async function loadTransferAccounts() {
       if (hideMatchedEl && saved.hideMatchedDocs) hideMatchedEl.checked = true;
     } catch (_) {}
   } catch (e) {
-    srcSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
-    dstSel.innerHTML = '<option value="">Chyba načítania účtov</option>';
+    srcSel.innerHTML = '<option value="">Účty sa nepodarilo načítať</option>';
+    dstSel.innerHTML = '<option value="">Účty sa nepodarilo načítať</option>';
     if (e.status === 401) showDisconnectedModulePicker();
+    else showTransferResult(formatApiError(e, 'Bankové účty sa nepodarilo načítať'), apiErrorType(e));
   }
 }
 
@@ -1794,8 +1870,9 @@ async function loadTransferPayments() {
     }
   } catch (e) {
     document.getElementById('transfer-loading').hidden = true;
-    document.getElementById('transfer-empty').hidden = false;
-    document.getElementById('transfer-empty').textContent = 'Chyba: ' + (e.message || e.status);
+    const emptyEl = document.getElementById('transfer-empty');
+    emptyEl.hidden = false;
+    emptyEl.innerHTML = `<div class="result-box ${apiErrorType(e)}">${formatApiError(e, 'Platby sa nepodarilo načítať')}</div>`;
     if (e.status === 401) showDisconnectedModulePicker();
   }
 }
@@ -1998,15 +2075,7 @@ async function transferSinglePayment(payment) {
       btn.textContent = originalText;
     }
     if (e.status === 401) showDisconnectedModulePicker();
-    else if (e.status === 408) showTransferResult('Vypršal časový limit (408). Skúste znova.', 'warning');
-    else if (e.status === 409) showTransferResult('Duplicitná požiadavka (409). Počkajte cca 120 s a skúste znova.', 'warning');
-    else if (e.status === 429) showTransferResult(`Príliš veľa požiadaviek (429). Počkajte ${e.retryAfter || 60} s.`, 'warning');
-    else if (e.status === 400 && e.data?.errors) {
-      const list = e.data.errors.map(x => `${x.propertyPath || '?'}: ${x.errorMessage || ''}`).join('<br>');
-      showTransferResult('Chyby:<br>' + list, 'error');
-    } else {
-      showTransferResult('Chyba: ' + (e.message || e.status), 'error');
-    }
+    else showTransferResult(formatApiError(e, 'Prevod sa nepodaril'), apiErrorType(e));
   }
 }
 
@@ -2058,7 +2127,7 @@ async function transferSelectedPayments() {
       successCount++;
     } catch (e) {
       errorCount++;
-      errors.push(`Platba ${pid}: ${e.message || e.status}`);
+      errors.push(`Platba ${pid}: ${apiErrorShort(e)}${e.message && e.message !== `HTTP ${e.status}` ? ' – ' + e.message : ''}`);
       if (e.status === 401) { showDisconnectedModulePicker(); return; }
     }
   }

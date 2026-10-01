@@ -1046,6 +1046,38 @@ th input[type="checkbox"] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20h19z'/%3E%3Cpath d='M12 10v4.5M12 17.5v.01'/%3E%3C/svg%3E");
 }
 
+/* Detail chyby z formatApiError (app.js) */
+.error-tech {
+  display: block;
+  margin-top: 0.375rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+
+.error-list {
+  margin: 0.375rem 0 0;
+  padding-left: 1.125rem;
+}
+
+.error-list code {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+/* Chyba načítania sa zobrazuje namiesto prázdneho zoznamu */
+.empty-state:has(> .result-box) {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.empty-state > .result-box {
+  margin-top: 0;
+}
+
 /* Stránkovanie */
 .pagination {
   display: flex;
