@@ -973,6 +973,45 @@ function showResult(id, msg, type = 'success') {
   el.innerHTML = msg;
   el.hidden = false;
   el.className = 'result-box ' + type;
+  showToast(msg, type);
+}
+
+/**
+ * Vyskakovacie hlásenie na mobile – výsledok je inak v lište na konci zoznamu
+ * a pri zápise jedného dokladu hore v zozname by nebol vidieť.
+ */
+function showToast(msg, type = 'success') {
+  if (!isMobileCardTableViewport()) return;
+  const region = document.getElementById('toast-region');
+  if (!region) return;
+
+  // Zobraz len najnovšie hlásenie
+  region.querySelectorAll('.toast').forEach(t => t.remove());
+
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  const body = document.createElement('div');
+  body.className = 'toast-body';
+  body.innerHTML = msg;
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Zavrieť hlásenie');
+  close.textContent = '×';
+  toast.append(body, close);
+  region.appendChild(toast);
+
+  let timer;
+  const dismiss = () => {
+    clearTimeout(timer);
+    toast.classList.add('toast-leaving');
+    setTimeout(() => toast.remove(), 200);
+  };
+  close.addEventListener('click', dismiss);
+  toast.addEventListener('click', dismiss);
+  // Chyby a varovania nechaj dlhšie, aby sa dali dočítať
+  timer = setTimeout(dismiss, type === 'success' ? 4000 : 7000);
 }
 
 async function loadAccounts() {
@@ -1930,6 +1969,7 @@ function showTransferResult(msg, type = 'success') {
   el.innerHTML = msg;
   el.hidden = false;
   el.className = 'result-box ' + type;
+  showToast(msg, type);
 }
 
 async function transferSinglePayment(payment) {
