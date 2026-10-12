@@ -7,6 +7,7 @@ import { DbSessionStore } from './sessionStore.js';
 import { createAuthServiceClient } from './auth/authServiceClient.js';
 import { createAuthRouter, SESSION_COOKIE } from './auth/routes.js';
 import { createRequireAuth, requireSameOrigin } from './auth/requireAuth.js';
+import { createConsentCallbackRouter, createConnectRouter } from './kros/consent.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -35,6 +36,7 @@ export function createApp({ config, db, now = Date.now }) {
   });
 
   // --- Cesty bez session ---
+  app.use(createConsentCallbackRouter({ config, db }));
 
   app.use(session({
     name: SESSION_COOKIE,
@@ -48,6 +50,7 @@ export function createApp({ config, db, now = Date.now }) {
   app.use(['/api', '/logout', '/kros/connect'], requireSameOrigin(config.appOrigin));
   app.use(createAuthRouter({ config, db, authClient, now }));
   const requireAuth = createRequireAuth({ config, db, authClient, now });
+  app.use(createConnectRouter({ config, db, requireAuth }));
 
   // index.html len cez SPA fallback (za requireAuth); ostatné statické súbory sú verejné.
   app.get('/index.html', (req, res) => res.redirect('/'));
