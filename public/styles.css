@@ -1141,7 +1141,10 @@ th input[type="checkbox"] {
 .pay-actions-row .settings-filters-item {
   flex: 1 1 320px;
   min-width: 240px;
-  margin-right: auto;
+}
+
+.pay-actions-row .settings-filters-item + .btn {
+  margin-left: auto;
 }
 
 .pay-actions-row .settings-filters-item select {

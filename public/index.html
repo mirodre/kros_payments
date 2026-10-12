@@ -232,25 +232,6 @@
         </div>
       </header>
 
-      <!-- Účty -->
-      <div class="panel filters-panel">
-        <h2 class="filters-panel-title">Účty</h2>
-        <div class="filters-panel-grid filters-panel-grid--two-equal">
-          <div class="filter-field">
-            <label for="transfer-src-account" class="sf-label">Zdrojový účet</label>
-            <select id="transfer-src-account">
-              <option value="">— načítavam —</option>
-            </select>
-          </div>
-          <div class="filter-field">
-            <label for="transfer-dst-account" class="sf-label">Cieľový účet</label>
-            <select id="transfer-dst-account">
-              <option value="">— načítavam —</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       <!-- Filtre -->
       <div id="filters-transfer-collapsible" class="panel panel-collapsible">
         <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-transfer" aria-expanded="false">
@@ -321,6 +302,18 @@
       <!-- Hromadný prevod -->
       <div class="panel action-bar">
         <div class="pay-actions-row">
+          <div class="filter-field settings-filters-item">
+            <label for="transfer-src-account" class="sf-label">Zdrojový účet</label>
+            <select id="transfer-src-account">
+              <option value="">— načítavam —</option>
+            </select>
+          </div>
+          <div class="filter-field settings-filters-item">
+            <label for="transfer-dst-account" class="sf-label">Cieľový účet</label>
+            <select id="transfer-dst-account">
+              <option value="">— načítavam —</option>
+            </select>
+          </div>
           <button type="button" id="btn-transfer-selected" class="btn btn-primary btn-lg" disabled>Previesť vybrané platby</button>
         </div>
         <div id="transfer-result" class="result-box" hidden></div>
