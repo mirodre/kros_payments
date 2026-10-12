@@ -2040,3 +2040,17 @@ th input[type="checkbox"] {
 .auth-card h1 { font-size: 1.4rem; margin: 0 0 12px; }
 .auth-card p { margin: 0 0 12px; color: var(--muted); }
 .auth-card a:not(.btn) { color: var(--brand); }
+
+/* Prihlásený používateľ */
+.user-menu { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.user-menu[hidden] { display: none; }
+.user-menu form { margin: 0; }
+.user-menu-text { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; line-height: 1.2; }
+.user-name { font-weight: 600; font-size: .9rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
+.user-org { font-size: .78rem; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
+.module-picker-footer { flex-wrap: wrap; gap: 8px; }
+.mobile-logout { display: none; margin: 0; }
+/* Na mobile je horná lišta skrytá – odhlásenie je v pätičke výberu modulu. */
+@media (max-width: 768px) {
+  .mobile-logout { display: block; }
+}

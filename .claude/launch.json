@@ -4,8 +4,14 @@
     {
       "name": "kros-payments",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server.js"],
+      "runtimeArgs": ["--env-file-if-exists=.env", "server.js"],
       "port": 3000
+    },
+    {
+      "name": "dev-auth",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/dev-auth-service.js"],
+      "port": 8100
     }
   ]
 }
