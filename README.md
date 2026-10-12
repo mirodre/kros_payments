@@ -4,20 +4,28 @@ Malá servisná webová aplikácia na načítanie neuhradených faktúr z KROS a
 
 ## Požiadavky
 
-- Node.js 18+
+- Node.js 22+
+- Produkcia: PostgreSQL a OAuth klient v [login.krosdoplnky.sk](https://login.krosdoplnky.sk) – pozri [docs/DEPLOY.md](docs/DEPLOY.md)
 
-## Inštalácia a spustenie
+## Lokálny vývoj
 
-```bash
-npm install
-npm start
-```
+Bez Dockeru aj bez Postgresu – databáza beží v procese (PGlite), prihlásenie obsluhuje falošný auth service.
 
-Aplikácia beží na [http://localhost:3000](http://localhost:3000).
+1. `npm install`
+2. Skopíruj `.env.example` → `.env` a nastav:
+   - `APP_URL=http://localhost:3000`
+   - `DATABASE_URL=pglite:./.data/pg`
+   - `AUTH_SERVICE_URL=http://localhost:8100`, `AUTH_SERVICE_CLIENT_ID=client-1`, `AUTH_SERVICE_CLIENT_SECRET=secret-1`
+   - `AUTH_SERVICE_REDIRECT_URI=http://localhost:3000/auth/sso/callback`
+   - `SESSION_SECRET` (`openssl rand -base64 48`) a `APP_ENCRYPTION_KEY` (`openssl rand -base64 32`)
+3. V jednom termináli `npm run dev:auth` (falošný login, automaticky prihlási „Alica Testová“; iný používateľ: `DEV_AUTH_USER=bob`).
+4. V druhom `npm run dev` → [http://localhost:3000](http://localhost:3000).
+
+Testy: `npm test`.
 
 ## Použitie
 
-1. **Pripojenie** – tlačidlo „Prepojiť s KROS“: aplikácia vás presmeruje na KROS consent stránku a po potvrdení súhlasu sa token doplní automaticky. Volanie KROS Open API je vždy smerované na production (`https://api-economy.kros.sk`).
+1. **Prihlásenie** – aplikácia vyžaduje účet na login.krosdoplnky.sk. **Prepojenie** – tlačidlo „Prepojiť s KROS“ presmeruje na KROS consent stránku; tokeny firiem uloží server (šifrované) pod vašu organizáciu, do prehliadača sa nedostanú.
 2. **Bankový účet** – vyberte účet, z ktorého sa majú evidovať úhrady (zoznam z KROS).
 3. **Načítať faktúry** – stlačte „Načítať neuhradené faktúry“. Zobrazia sa len neuhradené (PaymentStatus=0).
 4. **Filtre** – stav splatnosti (všetky / po splatnosti / v termíne), dátum vystavenia, suma od, partner, číselný rad. Filtre sa aplikujú na už načítaný zoznam.
@@ -27,15 +35,17 @@ Aplikácia beží na [http://localhost:3000](http://localhost:3000).
 
 ## Konfigurácia
 
-- **Premenná prostredia** (voliteľné):
-  - `PORT` – port servera (predvolene 3000)
+Všetko cez env premenné – pozri [.env.example](.env.example) a [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Štruktúra
 
-- `server.js` – Express server, proxy na KROS API, servuje statický frontend
-- `public/index.html` – štruktúra stránky
-- `public/styles.css` – štýly
-- `public/app.js` – logika prihlásenia, načítania faktúr, filtrov, výberu a odoslania platieb
+- `server.js` – štart: konfigurácia, migrácie, Express
+- `src/app.js` – zostavenie aplikácie (session, prihlásenie, KROS routy)
+- `src/auth/` – OAuth2 + PKCE klient na login.krosdoplnky.sk, prihlásenie, obnova session
+- `src/kros/` – prepojenie s KROS, webhook, API prepojení, proxy na KROS Open API
+- `src/db.js`, `src/repos.js`, `migrations/` – databáza (Postgres / PGlite)
+- `public/` – frontend (SPA)
+- `tests/` – testy (`node:test`)
 
 ## API (KROS OpenAPI)
 
