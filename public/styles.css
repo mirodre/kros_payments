@@ -1138,6 +1138,16 @@ th input[type="checkbox"] {
   flex-wrap: wrap;
 }
 
+.pay-actions-row .settings-filters-item {
+  flex: 1 1 320px;
+  min-width: 240px;
+  margin-right: auto;
+}
+
+.pay-actions-row .settings-filters-item select {
+  width: 100%;
+}
+
 .action-bar .result-box {
   margin-top: 0.75rem;
 }

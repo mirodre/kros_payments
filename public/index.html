@@ -33,7 +33,7 @@
 
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="https://www.krosdoplnky.sk/" title="krosdoplnky.sk">
+      <a class="brand" id="brand-home" href="/" title="Domov – výber modulu">
         <span class="brand-mark"><svg><use href="#i-invoice"/></svg></span>
         <span class="brand-text">Financie</span>
         <span class="brand-sep" aria-hidden="true">/</span>
@@ -116,16 +116,6 @@
         </div>
       </header>
 
-      <!-- Bankový účet na úhradu (hore, podobne ako v module Prevod) -->
-      <div class="panel filters-panel">
-        <label for="account" class="filters-panel-title">Bankový účet na úhradu</label>
-        <div class="filter-field">
-          <select id="account">
-            <option value="">— načítavam —</option>
-          </select>
-        </div>
-      </div>
-
       <div id="filters-invoices-collapsible" class="panel panel-collapsible">
         <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-invoices" aria-expanded="false">
           <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Filter
@@ -205,6 +195,12 @@
       <!-- Uhradiť vybrané -->
       <div class="panel action-bar">
         <div class="pay-actions-row">
+          <div class="filter-field settings-filters-item">
+            <label for="account" class="sf-label">Bankový účet na úhradu</label>
+            <select id="account">
+              <option value="">— načítavam —</option>
+            </select>
+          </div>
           <button type="button" id="btn-submit-payments" class="btn btn-primary btn-lg" disabled>Uhradiť vybrané doklady</button>
         </div>
         <div id="submit-result" class="result-box" hidden></div>
