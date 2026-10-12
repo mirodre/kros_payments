@@ -1,3 +1,7 @@
 # runtime logy – nepatria do repa
 kros-payment-callbacks.log
 .debug-*.log
+.env
+.data/
+.superpowers/
+node_modules/

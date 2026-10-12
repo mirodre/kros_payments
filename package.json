@@ -1,1 +1,25 @@
-{"name":"platforma-uhrady","version":"1.0.0","description":"Servisná webová aplikácia na načítanie neuhradených faktúr a odoslanie platieb cez KROS OpenAPI","type":"module","main":"server.js","scripts":{"start":"node server.js","dev":"node --watch server.js"},"engines":{"node":">=18"},"dependencies":{"express":"^4.21.0","http-proxy-middleware":"^3.0.0"}}
+{
+  "name": "platforma-uhrady",
+  "version": "1.0.0",
+  "description": "Servisná webová aplikácia na načítanie neuhradených faktúr a odoslanie platieb cez KROS OpenAPI",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "dev:auth": "node scripts/dev-auth-service.js",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "express-session": "^1.19.0",
+    "http-proxy-middleware": "^3.0.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17"
+  }
+}
