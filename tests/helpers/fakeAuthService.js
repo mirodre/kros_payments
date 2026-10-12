@@ -23,10 +23,15 @@ export async function startFakeAuthService({ clientId = 'client-1', clientSecret
   const codes = new Map();
   const access = new Map();
   const refresh = new Map();
-  const state = { userKey: 'alice', down: false };
-  const counts = { token: 0, refresh: 0, me: 0 };
+  const state = { userKey: 'alice', down: false, meDown: false };
+  const counts = { token: 0, refresh: 0, me: 0, tokenHits: 0 };
 
+  app.use((req, res, next) => {
+    if (req.method === 'POST' && req.path === '/oauth/token') counts.tokenHits += 1;
+    next();
+  });
   app.use((req, res, next) => (state.down ? res.status(503).send('down') : next()));
+  app.use('/api/me', (req, res, next) => (state.meDown ? res.status(503).send('down') : next()));
   app.use(express.urlencoded({ extended: false }));
 
   app.get('/oauth/authorize', (req, res) => {
@@ -93,6 +98,7 @@ export async function startFakeAuthService({ clientId = 'client-1', clientSecret
     counts,
     setUser: (key) => { state.userKey = key; },
     setDown: (down) => { state.down = down; },
+    setMeDown: (down) => { state.meDown = down; },
     revokeRefreshTokens: () => refresh.clear(),
     close: () => new Promise((r) => {
       server.closeAllConnections?.();

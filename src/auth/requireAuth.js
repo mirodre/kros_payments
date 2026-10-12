@@ -18,6 +18,8 @@ function attachUser(req, claims) {
 // pred uložením nových tokenov, prídu so starým refresh tokenom aj po dokončení refreshu.
 const inflight = new Map();
 const RESULT_REUSE_MS = 60_000;
+// Počas výpadku auth service neskúšame refresh pri každej požiadavke (timeout 5 s by brzdil každý klik).
+const REFRESH_RETRY_MS = 60_000;
 
 function refreshOnce(key, fn) {
   if (!inflight.has(key)) {
@@ -39,31 +41,51 @@ function refreshOnce(key, fn) {
 export function createRequireAuth({ config, db, authClient, now }) {
   const { claimsTtlMs, gracePeriodMs } = config.authService;
 
+  /**
+   * Refresh token sa pri použití rotuje – nové tokeny preto vrátime aj vtedy, keď potom
+   * zlyhá /api/me alebo DB (claimsError), inak by sa stratili a ďalší refresh by odhlásil.
+   */
   async function refresh(auth) {
     const tokens = await authClient.refresh(auth.tokens.refreshToken);
-    const claims = await authClient.me(tokens.accessToken);
-    await upsertUser(db, claims);
-    await upsertOrganizations(db, claims.organizations);
-    return { tokens, claims, claimsFetchedAt: now() };
+    try {
+      const claims = await authClient.me(tokens.accessToken);
+      await upsertUser(db, claims);
+      await upsertOrganizations(db, claims.organizations);
+      return { tokens, claims, claimsFetchedAt: now() };
+    } catch (claimsError) {
+      return { tokens, claimsError };
+    }
   }
+
+  // Prechodný výpadok (auth service alebo naša DB) je v grace perióde tolerovaný.
+  const isTransient = (err) => err.kind === 'unavailable' || !err.kind;
 
   return async function requireAuth(req, res, next) {
     const auth = req.session?.auth;
     if (!auth) return unauthenticated(req, res);
 
-    if (now() - auth.claimsFetchedAt >= claimsTtlMs) {
+    const stale = now() - auth.claimsFetchedAt >= claimsTtlMs;
+    const withinGrace = now() - auth.claimsFetchedAt < gracePeriodMs;
+    const backingOff = withinGrace && now() < (auth.nextRefreshAt || 0);
+    if (stale && !backingOff) {
+      const logout = (err) => {
+        console.warn('[auth] odhlasujem po zlyhaní refreshu:', err.kind || err.message);
+        req.session.destroy(() => unauthenticated(req, res));
+      };
       try {
         const fresh = await refreshOnce(auth.tokens.refreshToken, () => refresh(auth));
-        if (!fresh.claims.email_verified || !fresh.claims.active_organization) {
-          return req.session.destroy(() => unauthenticated(req, res));
+        if (fresh.claimsError) {
+          if (!isTransient(fresh.claimsError) || !withinGrace) return logout(fresh.claimsError);
+          req.session.auth = { ...auth, tokens: fresh.tokens, nextRefreshAt: now() + REFRESH_RETRY_MS };
+        } else {
+          if (!fresh.claims.email_verified || !fresh.claims.active_organization) {
+            return req.session.destroy(() => unauthenticated(req, res));
+          }
+          req.session.auth = fresh;
         }
-        req.session.auth = fresh;
       } catch (err) {
-        const withinGrace = err.kind === 'unavailable' && now() - auth.claimsFetchedAt < gracePeriodMs;
-        if (!withinGrace) {
-          console.warn('[auth] odhlasujem po zlyhaní refreshu:', err.kind || err.message);
-          return req.session.destroy(() => unauthenticated(req, res));
-        }
+        if (err.kind !== 'unavailable' || !withinGrace) return logout(err);
+        req.session.auth = { ...auth, nextRefreshAt: now() + REFRESH_RETRY_MS };
       }
     }
     attachUser(req, req.session.auth.claims);

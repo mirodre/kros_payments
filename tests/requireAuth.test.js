@@ -45,6 +45,38 @@ test('revokovaný refresh token → odhlásenie', async () => {
   assert.equal(html.status, 302);
 });
 
+test('refresh prejde, /api/me spadne → nový refresh token sa nestratí, používateľ ostane prihlásený', async () => {
+  const b = await ctx.login();
+  ctx.auth.setMeDown(true);
+  try {
+    ctx.clock.now += TTL + 1;
+    assert.equal((await b.request(`${ctx.base}/api/me`)).status, 200);
+  } finally {
+    ctx.auth.setMeDown(false);
+  }
+  ctx.clock.now += 61_000;
+  const refreshesBefore = ctx.auth.counts.refresh;
+  assert.equal((await b.request(`${ctx.base}/api/me`)).status, 200);
+  assert.equal(ctx.auth.counts.refresh, refreshesBefore + 1);
+  assert.equal((await b.request(`${ctx.base}/api/me`)).status, 200);
+});
+
+test('počas výpadku sa refresh neopakuje pri každej požiadavke (backoff 60 s)', async () => {
+  const b = await ctx.login();
+  ctx.auth.setDown(true);
+  try {
+    ctx.clock.now += TTL + 1;
+    const hits = ctx.auth.counts.tokenHits;
+    for (let i = 0; i < 3; i++) assert.equal((await b.request(`${ctx.base}/api/me`)).status, 200);
+    assert.equal(ctx.auth.counts.tokenHits, hits + 1);
+    ctx.clock.now += 61_000;
+    assert.equal((await b.request(`${ctx.base}/api/me`)).status, 200);
+    assert.equal(ctx.auth.counts.tokenHits, hits + 2);
+  } finally {
+    ctx.auth.setDown(false);
+  }
+});
+
 test('výpadok auth service → grace 24 h, potom odhlásenie', async () => {
   const b = await ctx.login();
   ctx.auth.setDown(true);
