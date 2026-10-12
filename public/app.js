@@ -2086,6 +2086,10 @@ function bindEvents() {
   // Back buttons
   document.getElementById('btn-back-invoices')?.addEventListener('click', showModulePicker);
   document.getElementById('btn-back-transfer')?.addEventListener('click', showModulePicker);
+  document.getElementById('brand-home')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showModulePicker();
+  });
 
   // Transfer module actions
   document.getElementById('btn-load-transfer')?.addEventListener('click', loadTransferPayments);
