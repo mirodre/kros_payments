@@ -10,6 +10,7 @@ import { createRequireAuth, requireSameOrigin } from './auth/requireAuth.js';
 import { createConsentCallbackRouter, createConnectRouter } from './kros/consent.js';
 import { createWebhookRouter } from './kros/webhook.js';
 import { createApiRouter } from './kros/api.js';
+import { createKrosProxyRouter } from './kros/proxy.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -68,6 +69,8 @@ export function createApp({ config, db, now = Date.now }) {
 
   app.use('/api', requireAuth);
   app.use('/api', createApiRouter({ config, db }));
+  // Bez globálneho body parsera: /payments/batch číta stream sám a proxy potrebuje surové telo.
+  app.use('/api', createKrosProxyRouter({ config, db }));
 
   app.get('*', requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
