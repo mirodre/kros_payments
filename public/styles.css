@@ -2033,3 +2033,10 @@ th input[type="checkbox"] {
     display: none;
   }
 }
+
+/* Stránky prihlásenia (mimo SPA) */
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--surface-alt); }
+.auth-card { max-width: 440px; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; color: var(--ink); }
+.auth-card h1 { font-size: 1.4rem; margin: 0 0 12px; }
+.auth-card p { margin: 0 0 12px; color: var(--muted); }
+.auth-card a:not(.btn) { color: var(--brand); }
