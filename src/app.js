@@ -8,6 +8,8 @@ import { createAuthServiceClient } from './auth/authServiceClient.js';
 import { createAuthRouter, SESSION_COOKIE } from './auth/routes.js';
 import { createRequireAuth, requireSameOrigin } from './auth/requireAuth.js';
 import { createConsentCallbackRouter, createConnectRouter } from './kros/consent.js';
+import { createWebhookRouter } from './kros/webhook.js';
+import { createApiRouter } from './kros/api.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -36,6 +38,7 @@ export function createApp({ config, db, now = Date.now }) {
   });
 
   // --- Cesty bez session ---
+  app.use(createWebhookRouter({ config, db }));
   app.use(createConsentCallbackRouter({ config, db }));
 
   app.use(session({
@@ -64,9 +67,7 @@ export function createApp({ config, db, now = Date.now }) {
   }));
 
   app.use('/api', requireAuth);
-  app.get('/api/me', (req, res) => {
-    res.json({ user: req.user, organization: req.organization });
-  });
+  app.use('/api', createApiRouter({ config, db }));
 
   app.get('*', requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
