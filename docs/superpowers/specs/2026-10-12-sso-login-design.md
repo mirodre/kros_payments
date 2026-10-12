@@ -17,7 +17,7 @@ Existujúce prepojenia v `localStorage` sa **neprenášajú** — používateľ 
 ## Architektúra
 
 Jeden Node proces (Express 4, plain JS ESM, bez build kroku). Nové závislosti:
-`express-session`, `connect-pg-simple`, `pg`, `node-pg-migrate`. OAuth klient je vlastný (~150 riadkov, `fetch` + `node:crypto`), port logiky `AuthServiceClient`/`SsoFlow`/`RefreshSsoClaims` z `C:\Cursor\payment_connector`.
+`express-session`, `pg`; dev: `@electric-sql/pglite` (Postgres vo WASM — testy a lokálny vývoj bez Dockeru cez `DATABASE_URL=pglite:memory` alebo `pglite:./.data/pg`). Migrácie aj session store sú vlastné (malé, nad spoločným rozhraním `db.query`/`db.exec`/`db.withClient`), aby fungovali s `pg` aj PGlite. Session dáta sa v DB ukladajú **šifrované** (`APP_ENCRYPTION_KEY`), lebo obsahujú refresh token. OAuth klient je vlastný (~150 riadkov, `fetch` + `node:crypto`), port logiky `AuthServiceClient`/`SsoFlow`/`RefreshSsoClaims` z `C:\Cursor\payment_connector`.
 
 Server kód sa rozdelí do modulov v `src/`:
 
@@ -90,7 +90,13 @@ kros_payment_callbacks (
   payload jsonb not null
 )
 
-session (...)                       -- štandardná schéma connect-pg-simple
+sessions (
+  sid text primary key,
+  data text not null,               -- AES-256-GCM(JSON session)
+  expires_at timestamptz not null
+)
+
+schema_migrations (name text primary key, applied_at timestamptz)  -- runner migrácií
 ```
 
 Členstvo v organizácii sa neukladá — pravdou sú claims v session (`organizations`, `active_organization` z `/api/me`), obnovované každých 15 min.
@@ -141,7 +147,9 @@ Tokeny už neprechádzajú prehliadačom; medzistránka so `sessionStorage` zani
 
 **Proxy:** frontend posiela `X-Kros-Connection: <uuid>` namiesto `Authorization`. Middleware `withKrosConnection` načíta prepojenie v rámci organizácie (inak 404 `connection_not_found`), dešifruje token (pri zlyhaní nastaví `invalid_at`, vráti 409 `connection_invalid`), nastaví `req.krosToken`. Generický proxy aj vlastné handlery posielajú `Authorization: Bearer ${req.krosToken}` na `KROS_API_BASE`. Hlavička `X-Kros-Base-URL` sa ignoruje a odstráni z frontendu. Ak KROS vráti 401, prepojenie sa označí `invalid_at` a odpoveď sa prepošle.
 
-**Webhook `POST /kros/payments-callback/:webhookKey[/*]`:** raw body (`express.raw`), organizácia podľa `webhook_key` (neznámy → 404). Podpis `x-kros-signature-256`: HMAC-SHA256 raw body so `webhookSecret` každého prepojenia organizácie; akceptuje sa hex aj `sha256=<hex>`, porovnanie `timingSafeEqual`. Zhoda → `signature_valid=true`, `connection_id` = to prepojenie. Bez zhody → uloží sa s `signature_valid=false`, warn log (bez obsahu secretov). Odpoveď vždy 200 (ako dnes). Presný formát podpisu sa overí na reálnom webhooku; potom sa neplatné podpisy začnú odmietať (mimo tohto projektu). `GET` na rovnakú cestu = reachability check 200.
+**Webhook `POST /kros/payments-callback/:webhookKey[/*]`:** raw body (`express.raw`), organizácia podľa `webhook_key` (neznámy → 404). Podpis `x-kros-signature-256`: podľa poznámky v dnešnom kóde KROS podpisuje „HMACSHA256, Base64, UTF-16LE“. Overuje sa HMAC-SHA256 so `webhookSecret` každého prepojenia organizácie, kandidáti: kľúč UTF-8/UTF-16LE × telo UTF-16LE/raw bajty × výstup Base64/hex, voliteľný prefix `sha256=`; porovnanie `timingSafeEqual`. Zhoda → `signature_valid=true`, `connection_id` = to prepojenie. Bez zhody → uloží sa s `signature_valid=false`, warn log (bez obsahu secretov). Odpoveď vždy 200 (ako dnes). Presný formát podpisu sa overí na reálnom webhooku; potom sa neplatné podpisy začnú odmietať (mimo tohto projektu). `GET` na rovnakú cestu = reachability check 200. Starý endpoint bez kľúča (`/kros/payments-callback`) vráti 200 a webhook zahodí s warn logom (nevieme ho priradiť organizácii; po novom prepojení KROS dostane novú URL).
+
+Proxy na KROS nikdy nepreposiela `cookie`, `origin`, `referer`, `x-kros-connection` ani `set-cookie` z odpovede.
 
 ## Frontend (`public/app.js`, `public/index.html`)
 
@@ -149,7 +157,8 @@ Tokeny už neprechádzajú prehliadačom; medzistránka so `sessionStorage` zani
 - Zoznam firiem z `GET /api/kros/connections`; „Prepojiť s KROS“ → `location.href='/kros/connect'`; možnosť firmu odpojiť.
 - Spracovať `?kros_connected=N` / `?kros_error=state` toastom a vyčistiť URL.
 - Používateľ (`GET /api/me` aplikácie → `{name, email, organization}`) v hlavičke + tlačidlo „Odhlásiť“ (form `POST /logout`).
-- Spoločný `apiFetch` wrapper: posiela `X-Kros-Connection` vybranej firmy, pri `401` → `location.href='/login?return=' + aktuálna cesta`.
+- Spoločný `apiCall` wrapper: posiela `X-Kros-Connection` vybranej firmy; pri `401` s telom `{error:"unauthenticated"}` (naša session) → `location.href='/login?return=' + aktuálna cesta`. Iný `401` je od KROS (neplatný token firmy) → hláška „Prepojenie s firmou je neplatné, prepojte znova“ (prepojenie sa už nemaže lokálne).
+- „Zrušiť prepojenie“ → `DELETE /api/kros/connections/:id` aktívnej firmy (s potvrdením).
 - Odstrániť hidden input `api-base`, hlavičky `Authorization` a `X-Kros-Base-URL`, hlášky s `localhost:3000`.
 
 ## Konfigurácia
@@ -168,7 +177,7 @@ KROS_API_BASE=https://api-economy.kros.sk
 PORT=3000
 ```
 
-Chýbajúca povinná premenná → štart zlyhá s jasnou hláškou. Migrácie (`node-pg-migrate`, adresár `migrations/`) sa spúšťajú pri štarte. Lokálny vývoj: `docker-compose.yml` s Postgresom; `npm run dev` načíta `.env` cez `node --env-file`.
+Chýbajúca povinná premenná → štart zlyhá s jasnou hláškou. Migrácie (`migrations/*.sql`, vlastný runner s `pg_advisory_lock`) sa spúšťajú pri štarte. Lokálny vývoj: `DATABASE_URL=pglite:./.data/pg` + `npm run dev:auth` (falošný auth service na `localhost:8100`, automaticky prihlási testovacieho používateľa); `npm run dev` načíta `.env` cez `node --env-file-if-exists`.
 
 ## Nasadenie (`docs/DEPLOY.md`)
 
@@ -197,7 +206,7 @@ Nikdy nelogovať tokeny, secrety, `code`, `code_verifier`.
 `node:test` (`npm test`), bez ďalších frameworkov.
 
 - **Unit:** PKCE (S256 vektor z RFC 7636), encrypt/decrypt round-trip + poškodený ciphertext zlyhá, rozhodovanie refresh/grace/logout, overenie podpisu webhooku (hex aj `sha256=`), validácia `return` cesty, config validácia.
-- **Integračné** (Postgres z `TEST_DATABASE_URL`, čistá schéma pre každý beh; falošný auth service ako in-process Express; falošné KROS API ako in-process Express):
+- **Integračné** (PGlite in-memory, čistá DB pre každý test súbor; falošný auth service ako in-process Express; falošné KROS API ako in-process Express):
   - celý login flow → session → `/api/me`
   - `/api/*` bez session → 401; HTML → 302 `/login`
   - refresh po expirácii claims; `invalid_grant` → odhlásenie; výpadok → grace
