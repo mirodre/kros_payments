@@ -6,6 +6,10 @@ import { createApp } from '../../src/app.js';
 import { startFakeAuthService } from './fakeAuthService.js';
 import { startFakeKros } from './fakeKros.js';
 import { createBrowser } from './browser.js';
+import { createKrosClient } from '../../src/automation/krosClient.js';
+
+/** KROS klient automatizácií bez odstupu medzi volaniami (rýchle testy). */
+export const fastKrosClient = (opts) => createKrosClient({ ...opts, delayMs: 0, sleep: async () => {} });
 
 export async function createTestContext() {
   const db = await createDb('pglite:memory');
@@ -27,7 +31,7 @@ export async function createTestContext() {
     KROS_API_BASE: kros.url,
   });
   const clock = { now: Date.now() };
-  const app = createApp({ config, db, now: () => clock.now });
+  const app = createApp({ config, db, now: () => clock.now, createKrosClient: fastKrosClient });
   server.on('request', app);
 
   return {

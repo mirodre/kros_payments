@@ -3,6 +3,7 @@ import express, { Router } from 'express';
 import crypto from 'node:crypto';
 import { decrypt, safeEqual } from '../crypto.js';
 import { findOrganizationByWebhookKey, listConnectionSecrets, insertCallback } from '../repos.js';
+import { applyRequestResult } from '../automation/repo.js';
 
 /**
  * KROS podpisuje telo webhook secretom („HMACSHA256, Base64, UTF-16LE“). Presný tvar
@@ -23,6 +24,25 @@ export function verifyKrosSignature(rawBody, secret, header) {
     }
   }
   return false;
+}
+
+/** Výsledok spracovania requestu: hlavičkový status aj status/problémy jednotlivých entít. */
+export function summarizeResult(payload) {
+  const problems = [];
+  const entities = payload?.results?.entities;
+  if (Array.isArray(entities)) {
+    for (const entity of entities) {
+      for (const p of entity?.problems || []) {
+        problems.push([p?.title, p?.detail].filter(Boolean).join(' – ') || JSON.stringify(p));
+      }
+      const st = Number(entity?.status);
+      if (Number.isFinite(st) && (st < 200 || st > 299) && !(entity?.problems || []).length) {
+        problems.push(`stav ${st}`);
+      }
+    }
+  }
+  const status = Number(payload?.status);
+  return { ok: status === 200 && problems.length === 0, error: problems.join('; ') || (status ? `stav ${status}` : 'neznámy výsledok') };
 }
 
 function parsePayload(raw) {
@@ -82,6 +102,13 @@ export function createWebhookRouter({ config, db }) {
         signatureValid: Boolean(connectionId),
         payload: parsePayload(raw),
       });
+      // Výsledok platby odoslanej automatizáciou → stav položky (len v rámci organizácie z URL;
+      // tvar podpisu ešte nie je overený na reálnom webhooku, tak ho tu nevyžadujeme).
+      const payload = parsePayload(raw);
+      if (payload?.requestId) {
+        await applyRequestResult(db, org.id, payload.requestId, summarizeResult(payload))
+          .catch((err) => console.warn('[kros-webhook] automatizácia: %s', err.message));
+      }
       // KROS musí dostať rýchlu 200, inak bude webhook opakovať.
       res.status(200).json({ ok: true });
     } catch (err) {

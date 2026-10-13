@@ -513,6 +513,7 @@ function showMain() {
   restoreSettings();
   renderInvoicesFiltersSummary();
   initKrosCallbacks();
+  window.refreshAutomationPanel?.('automation-invoices');
   loadInvoices(0);
 }
 
@@ -525,6 +526,7 @@ async function showTransfer() {
   document.getElementById('transfer-section').classList.remove('hidden');
   // Štandardne filtre schovať (aby zaberali menej miesta)
   setFiltersCollapsibleState('filters-transfer-collapsible', 'toggle-filters-transfer', false);
+  window.refreshAutomationPanel?.('automation-transfer');
   await loadTransferAccounts();
   renderTransferFiltersSummary();
   const srcId = document.getElementById('transfer-src-account')?.value;

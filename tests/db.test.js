@@ -4,12 +4,12 @@ import { createDb, migrate } from '../src/db.js';
 
 test('migrate vytvorí schému a je idempotentný', async () => {
   const db = await createDb('pglite:memory');
-  assert.deepEqual(await migrate(db), ['001_init.sql']);
+  assert.deepEqual(await migrate(db), ['001_init.sql', '002_automations.sql']);
   assert.deepEqual(await migrate(db), []);
   const { rows } = await db.query(
     "select table_name from information_schema.tables where table_schema='public' order by table_name");
   assert.deepEqual(rows.map((r) => r.table_name), [
-    'kros_connections', 'kros_consent_requests', 'kros_payment_callbacks',
+    'automation_items', 'automation_rules', 'kros_connections', 'kros_consent_requests', 'kros_payment_callbacks',
     'organizations', 'schema_migrations', 'sessions', 'users',
   ]);
   await db.close();

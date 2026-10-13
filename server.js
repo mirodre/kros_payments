@@ -5,6 +5,7 @@ import { loadConfig } from './src/config.js';
 import { createDb, migrate } from './src/db.js';
 import { createApp } from './src/app.js';
 import { DbSessionStore } from './src/sessionStore.js';
+import { startAutomationScheduler } from './src/automation/scheduler.js';
 
 let config;
 try {
@@ -31,7 +32,14 @@ const pruneTimer = setInterval(() => {
 }, 60 * 60 * 1000);
 pruneTimer.unref();
 
+// Automatizácie úhrad a prevodov.
+const stopAutomations = config.automationIntervalMinutes > 0
+  ? startAutomationScheduler({ db, config, intervalMs: config.automationIntervalMinutes * 60 * 1000 })
+  : () => {};
+if (config.automationIntervalMinutes > 0) console.log(`Automatizácie: každých ${config.automationIntervalMinutes} min`);
+
 function shutdown() {
+  stopAutomations();
   server.close(() => db.close().finally(() => process.exit(0)));
   setTimeout(() => process.exit(0), 5000).unref();
 }

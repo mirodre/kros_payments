@@ -34,7 +34,10 @@ AUTH_SERVICE_CLIENT_ID=…
 AUTH_SERVICE_CLIENT_SECRET=…
 AUTH_SERVICE_REDIRECT_URI=https://financie.krosdoplnky.sk/auth/sso/callback
 AUTH_SERVICE_APP_KEY=financie
+AUTOMATION_INTERVAL_MINUTES=60
 ```
+
+Automatizácie bežia v procese aplikácie (raz za `AUTOMATION_INTERVAL_MINUTES`, prvý beh minútu po štarte). Viac replík nevadí – tick aj jednotlivé pravidlá sú chránené advisory lockom.
 
 Tajomstvá vygeneruj:
 

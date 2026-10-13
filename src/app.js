@@ -11,11 +11,12 @@ import { createConsentCallbackRouter, createConnectRouter } from './kros/consent
 import { createWebhookRouter } from './kros/webhook.js';
 import { createApiRouter } from './kros/api.js';
 import { createKrosProxyRouter } from './kros/proxy.js';
+import { createAutomationRouter } from './automation/routes.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function createApp({ config, db, now = Date.now }) {
+export function createApp({ config, db, now = Date.now, createKrosClient }) {
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
@@ -69,6 +70,7 @@ export function createApp({ config, db, now = Date.now }) {
 
   app.use('/api', requireAuth);
   app.use('/api', createApiRouter({ config, db }));
+  app.use('/api', createAutomationRouter({ config, db, createClient: createKrosClient }));
   // Bez globálneho body parsera: /payments/batch číta stream sám a proxy potrebuje surové telo.
   app.use('/api', createKrosProxyRouter({ config, db }));
 

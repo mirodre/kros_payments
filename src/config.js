@@ -46,5 +46,8 @@ export function loadConfig(env = process.env) {
     },
     krosApiBase: stripSlash(env.KROS_API_BASE || 'https://api-economy.kros.sk'),
     krosConsentUrl: 'https://firma.kros.sk/integration-consent',
+    // 0 = plánovač automatizácií vypnutý (ručné „Spustiť teraz“ funguje stále).
+    automationIntervalMinutes: env.AUTOMATION_INTERVAL_MINUTES === undefined || env.AUTOMATION_INTERVAL_MINUTES === ''
+      ? 60 : Math.max(0, Number(env.AUTOMATION_INTERVAL_MINUTES) || 0),
   };
 }

@@ -127,6 +127,24 @@
         </div>
       </header>
 
+
+      <!-- Automatizácia (invoices) -->
+      <div id="automation-invoices" class="panel panel-collapsible automation-panel" data-kind="invoice_payment">
+        <button type="button" class="panel-toggle filters-panel-toggle automation-toggle" aria-expanded="false">
+          <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Automatizácia
+          <span class="filters-collapsible-summary automation-summary"></span>
+        </button>
+        <div class="panel-collapsible-content">
+          <p class="automation-intro muted">Server raz za hodinu uhradí nové neuhradené doklady podľa pravidiel nižšie. Doklad sa nikdy neuhradí dvakrát; ručné úhrady fungujú ďalej.</p>
+          <div class="result-box automation-result" hidden></div>
+          <div class="automation-list"></div>
+          <form class="automation-form" hidden novalidate></form>
+          <div class="automation-actions">
+            <button type="button" class="btn btn-secondary btn-sm automation-add">+ Nové pravidlo</button>
+          </div>
+        </div>
+      </div>
+
       <div id="filters-invoices-collapsible" class="panel panel-collapsible">
         <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-invoices" aria-expanded="false">
           <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Filter
@@ -243,6 +261,24 @@
         </div>
       </header>
 
+
+      <!-- Automatizácia (transfer) -->
+      <div id="automation-transfer" class="panel panel-collapsible automation-panel" data-kind="transfer">
+        <button type="button" class="panel-toggle filters-panel-toggle automation-toggle" aria-expanded="false">
+          <span class="panel-toggle-icon"><svg><use href="#i-chevron-right"/></svg></span> Automatizácia
+          <span class="filters-collapsible-summary automation-summary"></span>
+        </button>
+        <div class="panel-collapsible-content">
+          <p class="automation-intro muted">Server raz za hodinu prevedie nové platby zo zdrojového účtu na cieľový účet podľa pravidiel nižšie. Platba sa nikdy neprevedie dvakrát – ani keď ju prevediete ručne.</p>
+          <div class="result-box automation-result" hidden></div>
+          <div class="automation-list"></div>
+          <form class="automation-form" hidden novalidate></form>
+          <div class="automation-actions">
+            <button type="button" class="btn btn-secondary btn-sm automation-add">+ Nové pravidlo</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Filtre -->
       <div id="filters-transfer-collapsible" class="panel panel-collapsible">
         <button type="button" class="panel-toggle filters-panel-toggle" id="toggle-filters-transfer" aria-expanded="false">
@@ -345,6 +381,7 @@
     </section>
   </div>
   <div id="toast-region" class="toast-region" aria-live="polite"></div>
-  <script src="app.js?v=20261012"></script>
+  <script src="app.js?v=20261013"></script>
+  <script src="automation.js?v=20261013"></script>
 </body>
 </html>

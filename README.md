@@ -32,6 +32,13 @@ Testy: `npm test`.
 5. **Výber** – označte checkboxom faktúry, ktoré chcete uhradiť. Môžete použiť „Označiť všetky“ / „Odznačiť všetky“.
 6. **Dátum úhrady** – nastavte dátum, ktorý sa použije pre všetky vybrané platby.
 7. **Uhradiť vybrané** – odošle sa `POST /api/payments/batch` do KROS. Odpoveď 202 znamená prijaté; finálny výsledok príde cez váš webhook v KROS aplikácii.
+8. **Automatizácia** – v oboch moduloch panel „Automatizácia“: pravidlá (partner, účet/účty, typ dokladov, dátum „od“), ktoré server sám vyhodnocuje raz za hodinu. Detail v [docs/superpowers/specs/2026-10-13-automations-design.md](docs/superpowers/specs/2026-10-13-automations-design.md).
+
+### Ako automatizácia bráni duplicitám
+
+- Spracúva len doklady / platby od dátumu v pravidle a len zmenené od posledného behu (`LastModifiedTimestamp` = watermark − 10 min).
+- Každú položku si zapíše do `automation_items` s unikátnym kľúčom na firmu (`AUTO-INV-<id>`, `AUTO-EXP-<id>`, prevod `PID-<zdroj>-<id>` – rovnaký ako ručný prevod). Ten istý kľúč ide do KROS ako `externalId` a pred odoslaním sa overí cez `GET /api/payments?ExternalId=`.
+- Beh pravidla aj plánovača je chránený advisory lockom v Postgrese.
 
 ## Konfigurácia
 
@@ -43,8 +50,9 @@ Všetko cez env premenné – pozri [.env.example](.env.example) a [docs/DEPLOY.
 - `src/app.js` – zostavenie aplikácie (session, prihlásenie, KROS routy)
 - `src/auth/` – OAuth2 + PKCE klient na login.krosdoplnky.sk, prihlásenie, obnova session
 - `src/kros/` – prepojenie s KROS, webhook, API prepojení, proxy na KROS Open API
+- `src/automation/` – automatizácie: plánovač, beh pravidla, KROS klient servera, REST API
 - `src/db.js`, `src/repos.js`, `migrations/` – databáza (Postgres / PGlite)
-- `public/` – frontend (SPA)
+- `public/` – frontend (SPA); `public/automation.js` – panel automatizácií
 - `tests/` – testy (`node:test`)
 
 ## API (KROS OpenAPI)
