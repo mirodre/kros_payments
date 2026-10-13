@@ -24,7 +24,7 @@ export function createApp({ config, db, now = Date.now, createKrosClient }) {
 
   // Zastaralý app.js v cache by po nasadení robil problémy.
   app.use((req, res, next) => {
-    if (req.method === 'GET' && /\.(?:js|html|webmanifest)$/i.test(req.path)) {
+    if (req.method === 'GET' && /\.(?:js|css|html|webmanifest)$/i.test(req.path)) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
     next();

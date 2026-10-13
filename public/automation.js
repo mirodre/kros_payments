@@ -57,8 +57,8 @@
 
   function accountOptions(list, selected) {
     return '<option value="">— vyberte účet —</option>' + list.map((a) =>
-      `<option value="${escapeHtml(String(a.id))}" ${String(a.id) === String(selected ?? '') ? 'selected' : ''}>`
-      + `${escapeHtml(a.name || 'Účet')}${a.iban ? ' • ' + escapeHtml(a.iban) : ''} (${escapeHtml(a.currency || 'EUR')})</option>`,
+      `<option value="${escapeHtml(String(a.id))}" title="${escapeHtml(a.iban || '')}" ${String(a.id) === String(selected ?? '') ? 'selected' : ''}>`
+      + `${escapeHtml(formatAccountLabel(a))}</option>`,
     ).join('');
   }
 
@@ -139,45 +139,50 @@
   function renderForm(ctx, rule) {
     const r = rule || { partnerText: '', docTypes: 'all', accountId: '', targetAccountId: '', startDate: today(), enabled: true };
     const isTransfer = ctx.kind === 'transfer';
+    const id = (name) => `${ctx.panelId}-${name}`;
+    const field = (name, label, control, cls = '') =>
+      `<div class="filter-field ${cls}"><label class="sf-label" for="${id(name)}">${label}</label>${control}</div>`;
+    const accountSelect = (name, value) =>
+      `<select id="${id(name)}" name="${name}" required>${accountOptions(ctx.accounts, value)}</select>`;
+    const fields = isTransfer
+      ? [
+        field('startDate', 'Platby od', `<input type="date" id="${id('startDate')}" name="startDate" value="${escapeHtml(r.startDate)}" required>`),
+        field('accountId', 'Zdrojový účet', accountSelect('accountId', r.accountId)),
+        field('targetAccountId', 'Cieľový účet', accountSelect('targetAccountId', r.targetAccountId)),
+      ]
+      : [
+        field('startDate', 'Vystavené od', `<input type="date" id="${id('startDate')}" name="startDate" value="${escapeHtml(r.startDate)}" required>`),
+        field('accountId', 'Účet na úhradu', accountSelect('accountId', r.accountId)),
+        field('docTypes', 'Typ dokladov', `<select id="${id('docTypes')}" name="docTypes">${Object.entries(DOC_TYPES)
+          .map(([v, l]) => `<option value="${v}" ${r.docTypes === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`),
+      ];
     return `
-      <h3 class="automation-form-title">${rule ? 'Upraviť pravidlo' : 'Nové pravidlo'}</h3>
-      <div class="automation-form-grid">
-        <div class="filter-field">
-          <label class="sf-label" for="${ctx.panelId}-partner">Názov partnera obsahuje</label>
-          <input type="text" id="${ctx.panelId}-partner" name="partnerText" value="${escapeHtml(r.partnerText)}" placeholder="prázdne = všetci partneri" autocomplete="off" maxlength="200">
+      <header class="ad-head">
+        <div>
+          <h3 class="ad-title">${rule ? 'Upraviť pravidlo' : 'Nové pravidlo'}</h3>
+          <p class="ad-sub">${isTransfer ? 'Prevod platieb medzi vlastnými účtami' : 'Automatická úhrada dokladov'}</p>
         </div>
-        ${isTransfer ? `
-        <div class="filter-field">
-          <label class="sf-label" for="${ctx.panelId}-src">Zdrojový účet</label>
-          <select id="${ctx.panelId}-src" name="accountId" required>${accountOptions(ctx.accounts, r.accountId)}</select>
-        </div>
-        <div class="filter-field">
-          <label class="sf-label" for="${ctx.panelId}-dst">Cieľový účet</label>
-          <select id="${ctx.panelId}-dst" name="targetAccountId" required>${accountOptions(ctx.accounts, r.targetAccountId)}</select>
-        </div>` : `
-        <div class="filter-field">
-          <label class="sf-label" for="${ctx.panelId}-acc">Účet na úhradu</label>
-          <select id="${ctx.panelId}-acc" name="accountId" required>${accountOptions(ctx.accounts, r.accountId)}</select>
-        </div>
-        <div class="filter-field">
-          <label class="sf-label" for="${ctx.panelId}-types">Typ dokladov</label>
-          <select id="${ctx.panelId}-types" name="docTypes">
-            ${Object.entries(DOC_TYPES).map(([v, l]) => `<option value="${v}" ${r.docTypes === v ? 'selected' : ''}>${l}</option>`).join('')}
-          </select>
-        </div>`}
-        <div class="filter-field">
-          <label class="sf-label" for="${ctx.panelId}-start">${isTransfer ? 'Platby od dátumu' : 'Doklady vystavené od'}</label>
-          <input type="date" id="${ctx.panelId}-start" name="startDate" value="${escapeHtml(r.startDate)}" required>
-        </div>
+        <button type="button" class="ad-close automation-cancel" aria-label="Zavrieť">&times;</button>
+      </header>
+      <div class="ad-body">
+        ${field('partnerText', 'Názov partnera obsahuje',
+          `<input type="text" id="${id('partnerText')}" name="partnerText" value="${escapeHtml(r.partnerText)}" placeholder="prázdne = všetci" autocomplete="off" maxlength="200">`)}
+        ${fields.join('')}
+        <div class="result-box automation-form-error ad-span-2" hidden></div>
       </div>
-      <label class="filter-checkbox-label automation-form-enabled">
-        <input type="checkbox" name="enabled" ${r.enabled ? 'checked' : ''}> Pravidlo je zapnuté
-      </label>
-      <div class="result-box automation-form-error" hidden></div>
-      <div class="automation-form-buttons">
-        <button type="submit" class="btn btn-primary btn-sm">${rule ? 'Uložiť zmeny' : 'Vytvoriť pravidlo'}</button>
-        <button type="button" class="btn btn-secondary btn-sm automation-cancel">Zrušiť</button>
-      </div>`;
+      <footer class="ad-foot">
+        <label class="ar-switch-label">
+          <span class="ar-switch">
+            <input type="checkbox" name="enabled" ${r.enabled ? 'checked' : ''}>
+            <span class="ar-switch-track"></span>
+          </span>
+          Zapnuté
+        </label>
+        <div class="ad-buttons">
+          <button type="button" class="btn btn-secondary btn-sm automation-cancel">Zrušiť</button>
+          <button type="submit" class="btn btn-primary btn-sm">${rule ? 'Uložiť' : 'Vytvoriť pravidlo'}</button>
+        </div>
+      </footer>`;
   }
 
   function updateSummaryChip(panel, ctx) {
@@ -202,7 +207,7 @@
       list.innerHTML = ctx.rules.map((r) => renderRule(r, ctx)).join('');
       for (const id of ctx.openItems) loadItems(panel, id);
     }
-    panel.querySelector('.automation-add').hidden = Boolean(ctx.message) || ctx.editing !== null;
+    panel.querySelector('.automation-add').hidden = Boolean(ctx.message);
     updateSummaryChip(panel, ctx);
   }
 
@@ -222,20 +227,15 @@
   function openForm(panel, rule) {
     const ctx = panelState.get(panel.id);
     ctx.editing = rule ? rule.id : 'new';
-    const form = panel.querySelector('.automation-form');
-    form.innerHTML = renderForm(ctx, rule);
-    form.hidden = false;
-    render(panel);
-    form.querySelector('input[name="partnerText"]')?.focus();
+    const dialog = panel.querySelector('.automation-dialog');
+    dialog.querySelector('.automation-form').innerHTML = renderForm(ctx, rule);
+    dialog.showModal();
+    dialog.querySelector('input[name="partnerText"]')?.focus();
   }
 
   function closeForm(panel) {
-    const ctx = panelState.get(panel.id);
-    ctx.editing = null;
-    const form = panel.querySelector('.automation-form');
-    form.hidden = true;
-    form.innerHTML = '';
-    render(panel);
+    const dialog = panel.querySelector('.automation-dialog');
+    if (dialog.open) dialog.close();
   }
 
   async function submitForm(panel) {
@@ -332,12 +332,7 @@
     if (ctx.connectionId !== conn.id) {
       ctx.connectionId = conn.id;
       ctx.openItems.clear();
-      if (ctx.editing !== null) {
-        ctx.editing = null;
-        const form = panel.querySelector('.automation-form');
-        form.hidden = true;
-        form.innerHTML = '';
-      }
+      closeForm(panel);
     }
     try {
       const [rules, accounts] = await Promise.all([
@@ -388,6 +383,15 @@
     });
     form.addEventListener('click', (ev) => {
       if (ev.target.closest('.automation-cancel')) closeForm(panel);
+    });
+    const dialog = panel.querySelector('.automation-dialog');
+    dialog.addEventListener('close', () => {
+      ctx.editing = null;
+      form.innerHTML = '';
+    });
+    // Klik na pozadie (mimo okna) dialóg zavrie.
+    dialog.addEventListener('click', (ev) => {
+      if (ev.target === dialog) closeForm(panel);
     });
 
     panel.querySelector('.automation-list').addEventListener('click', (ev) => {

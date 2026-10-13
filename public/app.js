@@ -980,7 +980,7 @@ async function loadAccounts() {
     const list = res?.data || [];
     state.accounts = list;
     sel.innerHTML = '<option value="">— vyberte účet —</option>' + list.map(a =>
-      `<option value="${a.id}">${escapeHtml(a.name || 'Účet')} ${a.iban ? ' • ' + a.iban : ''} (${a.currency || 'EUR'})</option>`
+      `<option value="${a.id}" title="${escapeHtml(a.iban || '')}">${escapeHtml(formatAccountLabel(a))}</option>`
     ).join('');
     const saved = (() => { try { const r = localStorage.getItem(STORAGE_SETTINGS); return r ? JSON.parse(r) : null; } catch (_) { return null; } })();
     if (saved?.account) sel.value = saved.account;
@@ -989,6 +989,13 @@ async function loadAccounts() {
     if (e.status === 401) showDisconnectedModulePicker();
     else showResult('submit-result', formatApiError(e, 'Bankové účty sa nepodarilo načítať'), apiErrorType(e));
   }
+}
+
+/** Krátky popis účtu do zoznamu: „Názov · …4818“, mena len ak nie je EUR (celý IBAN je v title). */
+function formatAccountLabel(a) {
+  const iban = String(a?.iban || '').replace(/\s+/g, '');
+  const currency = a?.currency && a.currency !== 'EUR' ? ` (${a.currency})` : '';
+  return `${a?.name || 'Účet'}${iban ? ` · …${iban.slice(-4)}` : ''}${currency}`;
 }
 
 function escapeHtml(s) {
@@ -1639,7 +1646,7 @@ async function loadTransferAccounts() {
     const list = res?.data || [];
     state.accounts = list;
     const opts = '<option value="">— vyberte účet —</option>' + list.map(a =>
-      `<option value="${a.id}">${escapeHtml(a.name || 'Účet')}${a.iban ? ' • ' + a.iban : ''} (${a.currency || 'EUR'})</option>`
+      `<option value="${a.id}" title="${escapeHtml(a.iban || '')}">${escapeHtml(formatAccountLabel(a))}</option>`
     ).join('');
     srcSel.innerHTML = opts;
     dstSel.innerHTML = opts;

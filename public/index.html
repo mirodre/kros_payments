@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261012">
+  <link rel="stylesheet" href="styles.css?v=20261013b">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -135,13 +135,15 @@
           <span class="filters-collapsible-summary automation-summary"></span>
         </button>
         <div class="panel-collapsible-content">
-          <p class="automation-intro muted">Server raz za hodinu uhradí nové neuhradené doklady podľa pravidiel nižšie. Doklad sa nikdy neuhradí dvakrát; ručné úhrady fungujú ďalej.</p>
+          <div class="automation-bar">
+            <p class="automation-intro">Raz za hodinu uhradí nové neuhradené doklady podľa pravidiel. Nič sa neuhradí dvakrát.</p>
+            <button type="button" class="btn btn-primary btn-sm automation-add">+ Nové pravidlo</button>
+          </div>
           <div class="result-box automation-result" hidden></div>
           <div class="automation-list"></div>
-          <form class="automation-form" hidden novalidate></form>
-          <div class="automation-actions">
-            <button type="button" class="btn btn-secondary btn-sm automation-add">+ Nové pravidlo</button>
-          </div>
+          <dialog class="automation-dialog">
+            <form class="automation-form" method="dialog" novalidate></form>
+          </dialog>
         </div>
       </div>
 
@@ -269,13 +271,15 @@
           <span class="filters-collapsible-summary automation-summary"></span>
         </button>
         <div class="panel-collapsible-content">
-          <p class="automation-intro muted">Server raz za hodinu prevedie nové platby zo zdrojového účtu na cieľový účet podľa pravidiel nižšie. Platba sa nikdy neprevedie dvakrát – ani keď ju prevediete ručne.</p>
+          <div class="automation-bar">
+            <p class="automation-intro">Raz za hodinu prevedie nové platby podľa pravidiel. Nič sa neprevedie dvakrát – ani po ručnom prevode.</p>
+            <button type="button" class="btn btn-primary btn-sm automation-add">+ Nové pravidlo</button>
+          </div>
           <div class="result-box automation-result" hidden></div>
           <div class="automation-list"></div>
-          <form class="automation-form" hidden novalidate></form>
-          <div class="automation-actions">
-            <button type="button" class="btn btn-secondary btn-sm automation-add">+ Nové pravidlo</button>
-          </div>
+          <dialog class="automation-dialog">
+            <form class="automation-form" method="dialog" novalidate></form>
+          </dialog>
         </div>
       </div>
 
@@ -381,7 +385,7 @@
     </section>
   </div>
   <div id="toast-region" class="toast-region" aria-live="polite"></div>
-  <script src="app.js?v=20261013"></script>
-  <script src="automation.js?v=20261013"></script>
+  <script src="app.js?v=20261013b"></script>
+  <script src="automation.js?v=20261013b"></script>
 </body>
 </html>

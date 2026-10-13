@@ -1132,7 +1132,7 @@ th input[type="checkbox"] {
 
 .pay-actions-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
@@ -1145,6 +1145,11 @@ th input[type="checkbox"] {
 
 .pay-actions-row .settings-filters-item + .btn {
   margin-left: auto;
+}
+
+/* Tlačidlo zarovnané so zoznamom účtu (rovnaká výška ako pole). */
+.pay-actions-row > .btn-lg {
+  height: 40px;
 }
 
 .pay-actions-row .settings-filters-item select {
@@ -2071,11 +2076,23 @@ th input[type="checkbox"] {
 /* ============================================================
    Automatizácia (automation.js)
    ============================================================ */
+.automation-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.875rem;
+}
+
 .automation-intro {
-  margin: 0 0 1rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  max-width: 70ch;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--subtle);
+}
+
+.automation-bar .automation-add {
+  flex: none;
 }
 
 .automation-summary--warn {
@@ -2245,57 +2262,6 @@ th input[type="checkbox"] {
 .ar-switch input:checked + .ar-switch-track::after { transform: translateX(16px); }
 .ar-switch input:focus-visible + .ar-switch-track { box-shadow: var(--focus); }
 
-.automation-form {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--brand-tint-line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-alt);
-}
-
-.automation-form-title {
-  margin: 0 0 0.75rem;
-  font-size: 0.9375rem;
-}
-
-.automation-form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem 1rem;
-}
-
-.automation-form-grid .filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.automation-form-grid input,
-.automation-form-grid select {
-  width: 100%;
-  min-width: 0;
-}
-
-.automation-form-enabled {
-  display: inline-flex;
-  margin-top: 0.75rem;
-}
-
-.automation-form-buttons {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.automation-form-error {
-  margin-top: 0.75rem;
-}
-
-.automation-actions {
-  margin-top: 1rem;
-}
-
 @media (max-width: 639px) {
   .automation-rule {
     grid-template-columns: 1fr;
@@ -2310,10 +2276,230 @@ th input[type="checkbox"] {
   }
 }
 
-.automation-form-enabled {
+
+.ar-buttons .btn-sm {
+  height: 30px;
+  padding: 0 0.625rem;
+}
+
+.ar-switch-label {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  font-weight: 500;
   color: var(--ink);
   cursor: pointer;
+}
+
+.ar-switch-label .ar-switch {
+  margin-top: 0;
+}
+
+/* Dialóg pravidla */
+.automation-dialog {
+  width: min(560px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 48px -12px rgba(2, 6, 23, 0.25), var(--shadow-md);
+  overflow: visible;
+}
+
+.automation-dialog[open] {
+  animation: ad-in 0.16s ease-out;
+}
+
+.automation-dialog::backdrop {
+  background: rgba(2, 6, 23, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+@keyframes ad-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.ad-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.125rem 1.25rem 0.75rem;
+}
+
+.ad-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.ad-sub {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--subtle);
+}
+
+.ad-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: -0.25rem -0.375rem 0 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--subtle);
+  font-size: 1.375rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ad-close:hover {
+  background: var(--slate-tint);
+  color: var(--ink);
+}
+
+.ad-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.875rem;
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+
+.ad-span-2 {
+  grid-column: 1 / -1;
+}
+
+.ad-body .result-box {
+  margin: 0;
+}
+
+.ad-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface-alt);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.ad-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 520px) {
+  .ad-body {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ============================================================
+   Rozbaľovacie zoznamy – prispôsobiteľný <select> (Chromium 135+).
+   Ostatné prehliadače ostanú pri natívnom zozname s vlastnou šípkou vyššie.
+   ============================================================ */
+@supports (appearance: base-select) {
+  .filter-field select,
+  .module-company-switcher select {
+    appearance: base-select;
+    position: relative;
+    display: block;
+    background-image: none;
+    padding-right: 2.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .filter-field select { line-height: 38px; }
+  .module-company-switcher select { line-height: 46px; }
+
+  .filter-field select::picker-icon,
+  .module-company-switcher select::picker-icon {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
+    transition: transform 0.15s;
+  }
+
+  .filter-field select:open::picker-icon,
+  .module-company-switcher select:open::picker-icon {
+    transform: rotate(180deg);
+  }
+
+  .filter-field select option,
+  .module-company-switcher select option {
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  .filter-field select::picker(select),
+  .module-company-switcher select::picker(select) {
+    appearance: base-select;
+    margin-top: 4px;
+    padding: 4px;
+    max-height: min(320px, 50dvh);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    min-width: anchor-size(width);
+  }
+
+  .filter-field select option,
+  .module-company-switcher select option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .filter-field select option:hover,
+  .filter-field select option:focus-visible,
+  .module-company-switcher select option:hover,
+  .module-company-switcher select option:focus-visible {
+    background: var(--slate-tint);
+    outline: none;
+  }
+
+  .filter-field select option:checked,
+  .module-company-switcher select option:checked {
+    background: var(--brand-tint);
+    color: var(--brand);
+    font-weight: 500;
+  }
+
+  .filter-field select option::checkmark,
+  .module-company-switcher select option::checkmark {
+    order: 1;
+    margin-left: auto;
+    content: '✓';
+    color: var(--brand);
+  }
+
+  /* Prázdna voľba „— vyberte účet —“ */
+  .filter-field select option[value=""],
+  .module-company-switcher select option[value=""] {
+    color: var(--subtle);
+  }
 }
