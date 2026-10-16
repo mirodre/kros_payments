@@ -25,7 +25,7 @@ Testy: `npm test`.
 
 ## Použitie
 
-1. **Prihlásenie** – aplikácia vyžaduje účet na login.krosdoplnky.sk. **Prepojenie** – tlačidlo „Prepojiť s KROS“ presmeruje na KROS consent stránku; tokeny firiem uloží server (šifrované) pod vašu organizáciu, do prehliadača sa nedostanú.
+1. **Prihlásenie** – aplikácia vyžaduje účet na login.krosdoplnky.sk. **Prepojenie** – tlačidlo „Prepojiť s KROS“ presmeruje na KROS consent stránku; tokeny firiem uloží server (šifrované) pod vašu organizáciu, do prehliadača sa nedostanú. Pri spustení doplnku z obchodu doplnkov v KROS (Token Broker) sa firmy prepoja automaticky – tokeny posunie login.krosdoplnky.sk (`/api/me?kros=1`), pozri [docs/DEPLOY.md](docs/DEPLOY.md).
 2. **Bankový účet** – vyberte účet, z ktorého sa majú evidovať úhrady (zoznam z KROS).
 3. **Načítať faktúry** – stlačte „Načítať neuhradené faktúry“. Zobrazia sa len neuhradené (PaymentStatus=0).
 4. **Filtre** – stav splatnosti (všetky / po splatnosti / v termíne), dátum vystavenia, suma od, partner, číselný rad. Filtre sa aplikujú na už načítaný zoznam.

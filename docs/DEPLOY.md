@@ -19,7 +19,18 @@ Vypíše `Client ID` a `Client secret` → `AUTH_SERVICE_CLIENT_ID`, `AUTH_SERVI
 V env authentication_service:
 - pridaj Client ID do `PASSPORT_TRUSTED_CLIENTS` (čiarkou oddelené) – inak každé prihlásenie skončí 403,
 - pridaj `financie=https://financie.krosdoplnky.sk` do `AUTH_RETURN_APPS` (návrat po odhlásení),
+- doplnok „Hromadné úhrady“ (Token Broker, `sk.krosdoplnky.hromadne-uhrady`) nasmeruj na aplikáciu v režime `tokens` – v `KROS_PLUGIN_APPS`:
+  `sk.krosdoplnky.hromadne-uhrady=https://financie.krosdoplnky.sk/kros/launch|tokens:<Client ID financie>`
+  (kľúč doplnku musí byť aj v `KROS_PLUGIN_API_KEYS`),
 - redeploy a `php artisan auth:check-config`.
+
+### Launch z obchodu doplnkov (Token Broker)
+KROS po kliknutí v obchode doplnkov doručí access tokeny firiem do login služby, tá prihlási používateľa
+a presmeruje ho na `/kros/launch`. Aplikácia si tokeny vyzdvihne cez `/api/me?kros=1` (pri prihlásení,
+na `/kros/launch` aj pri každej obnove claims) a uloží ich šifrovane do `kros_connections` pod aktívnu
+organizáciu – rovnako ako prepojenia z „Prepojiť s KROS“. Vyzdvihnutie je jednorazové; ak sa niečo
+pokazí, stačí doplnok spustiť z KROSu znova. Token Broker nenastavuje webhook – výsledky úhrad cez
+webhook prídu len pre firmy prepojené aj cez „Prepojiť s KROS“ (ich webhook secret sa pri launchi zachová).
 
 ## 3. Env aplikácie
 Pozri `.env.example`. Produkčné hodnoty:

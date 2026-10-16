@@ -68,8 +68,25 @@ export function createConsentCallbackRouter({ config, db }) {
   return router;
 }
 
-export function createConnectRouter({ config, db, requireAuth }) {
+export function createConnectRouter({ config, db, requireAuth, now = Date.now }) {
   const router = Router();
+
+  // Cieľ launchu z obchodu doplnkov (KROS_PLUGIN_APPS v login službe). Pri živej session
+  // vynúti obnovu claims, aby sa hneď vyzdvihli tokeny, ktoré po launchi doručil broker.
+  router.get('/kros/launch', (req, res, next) => {
+    const auth = req.session?.auth;
+    if (auth) {
+      req.session.auth = {
+        ...auth,
+        claimsFetchedAt: Math.min(auth.claimsFetchedAt, now() - config.authService.claimsTtlMs),
+        nextRefreshAt: 0,
+      };
+    }
+    next();
+  }, requireAuth, (req, res) => {
+    res.redirect(req.krosConnected > 0 ? `/?kros_connected=${req.krosConnected}` : '/');
+  });
+
   router.get('/kros/connect', requireAuth, async (req, res, next) => {
     try {
       const org = await getOrganization(db, req.organizationId);

@@ -61,3 +61,14 @@ test('výpadok → unavailable (5xx aj sieť)', async () => {
 test('logoutUrl', () => {
   assert.equal(client.logoutUrl('financie'), `${fake.url}/logout?app=financie&path=%2F`);
 });
+
+test('meWithKros: tokeny z brokera oddelené od claims, vyzdvihnutie jednorazové', async () => {
+  const verifier = 'k'.repeat(43);
+  const tokens = await client.exchangeCode({ code: await obtainCode(verifier), codeVerifier: verifier });
+  fake.deliverKrosTokens('alice', [{ companyId: '7', companyName: 'Zeta', token: 'tok-7' }]);
+  const first = await client.meWithKros(tokens.accessToken);
+  assert.equal(first.claims.sub, 'user-alice');
+  assert.equal(first.claims.kros_connections, undefined);
+  assert.deepEqual(first.krosConnections, [{ companyId: '7', companyName: 'Zeta', token: 'tok-7' }]);
+  assert.deepEqual((await client.meWithKros(tokens.accessToken)).krosConnections, []);
+});

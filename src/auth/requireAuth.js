@@ -1,5 +1,6 @@
 /** Overenie prihlásenia (s obnovou claims) + ochrana proti CSRF cez Origin. */
 import { upsertUser, upsertOrganizations } from '../repos.js';
+import { storeBrokerConnections } from '../kros/brokerConnections.js';
 
 export function unauthenticated(req, res) {
   if (req.originalUrl.startsWith('/api/')) return res.status(401).json({ error: 'unauthenticated' });
@@ -48,10 +49,17 @@ export function createRequireAuth({ config, db, authClient, now }) {
   async function refresh(auth) {
     const tokens = await authClient.refresh(auth.tokens.refreshToken);
     try {
-      const claims = await authClient.me(tokens.accessToken);
+      const { claims, krosConnections } = await authClient.meWithKros(tokens.accessToken);
       await upsertUser(db, claims);
       await upsertOrganizations(db, claims.organizations);
-      return { tokens, claims, claimsFetchedAt: now() };
+      // Launch z KROS pri už prihlásenom používateľovi: tokeny čakajú v login službe na najbližšie /api/me.
+      const krosConnected = await storeBrokerConnections(db, {
+        encryptionKey: config.encryptionKey,
+        organizationId: claims.active_organization,
+        userId: claims.sub,
+        connections: krosConnections,
+      });
+      return { tokens, claims, claimsFetchedAt: now(), krosConnected };
     } catch (claimsError) {
       return { tokens, claimsError };
     }
@@ -81,7 +89,9 @@ export function createRequireAuth({ config, db, authClient, now }) {
           if (!fresh.claims.email_verified || !fresh.claims.active_organization) {
             return req.session.destroy(() => unauthenticated(req, res));
           }
-          req.session.auth = fresh;
+          const { krosConnected, ...sessionAuth } = fresh;
+          req.session.auth = sessionAuth;
+          req.krosConnected = krosConnected;
         }
       } catch (err) {
         if (err.kind !== 'unavailable' || !withinGrace) return logout(err);

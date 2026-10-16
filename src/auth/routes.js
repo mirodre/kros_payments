@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { randomToken, pkceChallenge, safeEqual } from '../crypto.js';
 import { upsertUser, upsertOrganizations } from '../repos.js';
 import { renderAuthPage } from './pages.js';
+import { storeBrokerConnections } from '../kros/brokerConnections.js';
 
 export const SESSION_COOKIE = 'financie_sid';
 
@@ -36,9 +37,10 @@ export function createAuthRouter({ config, db, authClient, now }) {
     }
     let tokens;
     let claims;
+    let krosConnections;
     try {
       tokens = await authClient.exchangeCode({ code, codeVerifier: sso.verifier });
-      claims = await authClient.me(tokens.accessToken);
+      ({ claims, krosConnections } = await authClient.meWithKros(tokens.accessToken));
     } catch (err) {
       console.warn('[auth] callback zlyhal:', err.kind || err.message);
       const unavailable = err.kind === 'unavailable';
@@ -47,9 +49,16 @@ export function createAuthRouter({ config, db, authClient, now }) {
     if (!claims.email_verified) return page(res, 403, 'unverified');
     if (!claims.active_organization) return page(res, 403, 'no_org');
 
+    let krosConnected = 0;
     try {
       await upsertUser(db, claims);
       await upsertOrganizations(db, claims.organizations);
+      krosConnected = await storeBrokerConnections(db, {
+        encryptionKey: config.encryptionKey,
+        organizationId: claims.active_organization,
+        userId: claims.sub,
+        connections: krosConnections,
+      });
     } catch (err) {
       return next(err);
     }
@@ -58,7 +67,7 @@ export function createAuthRouter({ config, db, authClient, now }) {
       req.session.auth = { tokens, claims, claimsFetchedAt: now() };
       req.session.save((saveErr) => {
         if (saveErr) return next(saveErr);
-        res.redirect(sso.returnTo || '/');
+        res.redirect(krosConnected > 0 ? `/?kros_connected=${krosConnected}` : (sso.returnTo || '/'));
       });
     });
   });

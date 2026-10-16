@@ -59,7 +59,7 @@ export async function upsertConnection(db, c) {
      on conflict (organization_id, kros_company_id) do update set
        company_name = excluded.company_name,
        token_enc = excluded.token_enc,
-       webhook_secret_enc = excluded.webhook_secret_enc,
+       webhook_secret_enc = coalesce(excluded.webhook_secret_enc, kros_connections.webhook_secret_enc),
        invalid_at = null,
        updated_at = now()
      returning id`,

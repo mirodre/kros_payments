@@ -55,7 +55,7 @@ export function createApp({ config, db, now = Date.now, createKrosClient }) {
   app.use(['/api', '/logout', '/kros/connect'], requireSameOrigin(config.appOrigin));
   app.use(createAuthRouter({ config, db, authClient, now }));
   const requireAuth = createRequireAuth({ config, db, authClient, now });
-  app.use(createConnectRouter({ config, db, requireAuth }));
+  app.use(createConnectRouter({ config, db, requireAuth, now }));
 
   // index.html len cez SPA fallback (za requireAuth); ostatné statické súbory sú verejné.
   app.get('/index.html', (req, res) => res.redirect('/'));

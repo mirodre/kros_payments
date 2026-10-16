@@ -24,6 +24,8 @@ export async function startFakeAuthService({ clientId = 'client-1', clientSecret
   const access = new Map();
   const refresh = new Map();
   const state = { userKey: 'alice', down: false, meDown: false };
+  // Úschovňa tokenov z Token Broker launchu (userKey → prepojenia), vyzdvihnutie je jednorazové ako v login službe.
+  const krosStash = new Map();
   const counts = { token: 0, refresh: 0, me: 0, tokenHits: 0 };
 
   app.use((req, res, next) => {
@@ -84,7 +86,10 @@ export async function startFakeAuthService({ clientId = 'client-1', clientSecret
     const token = String(req.get('authorization') || '').replace(/^Bearer /, '');
     const userKey = access.get(token);
     if (!userKey) return res.status(401).json({ message: 'Unauthenticated.' });
-    res.json(FAKE_USERS[userKey]);
+    if (req.query.kros !== '1') return res.json(FAKE_USERS[userKey]);
+    const kros = krosStash.get(userKey) || [];
+    krosStash.delete(userKey);
+    res.json({ ...FAKE_USERS[userKey], kros_connections: kros });
   });
 
   app.all('/logout', (req, res) => res.type('text').send(`logged out (app=${req.query.app})`));
@@ -99,6 +104,8 @@ export async function startFakeAuthService({ clientId = 'client-1', clientSecret
     setUser: (key) => { state.userKey = key; },
     setDown: (down) => { state.down = down; },
     setMeDown: (down) => { state.meDown = down; },
+    /** Simuluje token-delivery po launchi z KROS. */
+    deliverKrosTokens: (userKey, connections) => { krosStash.set(userKey, connections); },
     revokeRefreshTokens: () => refresh.clear(),
     close: () => new Promise((r) => {
       server.closeAllConnections?.();

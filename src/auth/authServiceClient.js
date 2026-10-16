@@ -65,9 +65,20 @@ export function createAuthServiceClient({ url, clientId, clientSecret, redirectU
       return token({ grant_type: 'refresh_token', refresh_token: refreshToken }, refreshToken);
     },
     async me(accessToken) {
-      const claims = await call('/api/me', { headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
-      if (!claims.sub) throw new AuthServiceError('bad_response', '/api/me bez sub');
-      return { ...claims, organizations: Array.isArray(claims.organizations) ? claims.organizations : [] };
+      return (await this.meWithKros(accessToken)).claims;
+    },
+    /**
+     * `/api/me?kros=1`: claims + access tokeny na KROS OpenAPI, ktoré po launchi z KROS
+     * (Token Broker) doručil broker. Vyzdvihnutie je jednorazové – kto ich dostane, musí ich uložiť.
+     */
+    async meWithKros(accessToken) {
+      const body = await call('/api/me?kros=1', { headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
+      if (!body.sub) throw new AuthServiceError('bad_response', '/api/me bez sub');
+      const { kros_connections: krosConnections, ...claims } = body;
+      return {
+        claims: { ...claims, organizations: Array.isArray(claims.organizations) ? claims.organizations : [] },
+        krosConnections: Array.isArray(krosConnections) ? krosConnections : [],
+      };
     },
     logoutUrl(appKey) {
       return `${url}/logout?${new URLSearchParams({ app: appKey, path: '/' })}`;
