@@ -25,11 +25,14 @@ const server = app.listen(config.port, () => {
   console.log(`KROS API: ${config.krosApiBase} · Auth: ${config.authService.url}`);
 });
 
-// Raz za hodinu zmaž expirované sessions.
+// Zmaž expirované sessions pri štarte a potom raz za hodinu. Štart je dôležitý:
+// každý deploy reštartuje proces a hodinový timer by sa pri častých deployoch nedočkal.
 const sessionStore = new DbSessionStore(db, { key: config.encryptionKey });
-const pruneTimer = setInterval(() => {
-  sessionStore.pruneExpired().catch((err) => console.warn('[sessions] prune zlyhal:', err.message));
-}, 60 * 60 * 1000);
+const pruneSessions = () => sessionStore.pruneExpired()
+  .then((n) => { if (n) console.log(`[sessions] zmazaných expirovaných: ${n}`); })
+  .catch((err) => console.warn('[sessions] prune zlyhal:', err.message));
+pruneSessions();
+const pruneTimer = setInterval(pruneSessions, 60 * 60 * 1000);
 pruneTimer.unref();
 
 // Automatizácie úhrad a prevodov.

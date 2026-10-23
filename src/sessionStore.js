@@ -3,6 +3,9 @@ import session from 'express-session';
 import { encrypt, decrypt } from './crypto.js';
 
 const DEFAULT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// Session bez `auth` drží len stav rozbehnutého prihlásenia (/login → callback).
+// S 30-dňovou platnosťou cookie by každá návšteva /login (aj boti) ležala v DB mesiac.
+const PENDING_TTL_MS = 2 * 60 * 60 * 1000;
 
 export class DbSessionStore extends session.Store {
   constructor(db, { key, ttlMs = DEFAULT_TTL_MS }) {
@@ -14,7 +17,10 @@ export class DbSessionStore extends session.Store {
 
   expiresAt(sess) {
     const exp = sess?.cookie?.expires ? new Date(sess.cookie.expires) : null;
-    return exp && !Number.isNaN(exp.getTime()) ? exp : new Date(Date.now() + this.ttlMs);
+    const full = exp && !Number.isNaN(exp.getTime()) ? exp : new Date(Date.now() + this.ttlMs);
+    if (sess?.auth) return full;
+    const pending = new Date(Date.now() + PENDING_TTL_MS);
+    return pending < full ? pending : full;
   }
 
   get(sid, cb) {

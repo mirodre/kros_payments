@@ -38,3 +38,23 @@ test('expirovaná alebo nedešifrovateľná session sa ignoruje, prune maže', a
   assert.equal(await store.pruneExpired(), 1);
   await db.close();
 });
+
+test('nedokončené prihlásenie (bez auth) expiruje do 2 h, prihlásená session drží platnosť cookie', async () => {
+  const db = await createDb('pglite:memory');
+  await migrate(db);
+  const store = new DbSessionStore(db, { key });
+  const set = promisify(store.set.bind(store));
+  const touch = promisify(store.touch.bind(store));
+  const in30d = new Date(Date.now() + 30 * 24 * 3600_000).toISOString();
+  const expiresOf = async (sid) =>
+    new Date((await db.query('select expires_at from sessions where sid = $1', [sid])).rows[0].expires_at).getTime();
+
+  await set('pending', { cookie: { expires: in30d }, sso: { state: 's' } });
+  await set('authed', { cookie: { expires: in30d }, auth: { claims: {} } });
+  assert.ok(await expiresOf('pending') <= Date.now() + 2 * 3600_000 + 5000);
+  assert.ok(await expiresOf('authed') > Date.now() + 29 * 24 * 3600_000);
+
+  await touch('pending', { cookie: { expires: in30d }, sso: { state: 's' } });
+  assert.ok(await expiresOf('pending') <= Date.now() + 2 * 3600_000 + 5000);
+  await db.close();
+});
