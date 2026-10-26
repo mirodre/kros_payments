@@ -1,46 +1,47 @@
-/* Financie – vizuálny jazyk krosdoplnky.sk */
+/* Financie – vizuálny jazyk rodiny payment_connector (navy, Public Sans + Schibsted Grotesk) */
 
 :root {
-  /* Brand (zhodné s krosdoplnky.sk) */
-  --brand: #914735;
-  --brand-hover: #6f3527;
-  --brand-tint: #f5ebe7;
-  --brand-tint-line: #e7d5ce;
+  /* Akcent (navy z rodiny payment_connector) */
+  --brand: #14263f;
+  --brand-hover: #223a5e;
+  --brand-tint: #eef1f6;
+  --brand-tint-line: #d5dce5;
 
   /* Neutrály */
-  --ink: #020617;
-  --muted: #475569;
-  --subtle: #64748b;
-  --faint: #94a3b8;
-  --line: #e2e8f0;
-  --line-strong: #cbd5e1;
+  --ink: #14263f;
+  --muted: #4a5568;
+  --subtle: #6b7686;
+  --faint: #8a94a6;
+  --line: #e3e8ef;
+  --line-strong: #d5dce5;
   --surface: #ffffff;
-  --surface-alt: #f8fafc;
-  --slate-tint: #edf1f6;
+  --surface-alt: #f5f7fa;
+  --slate-tint: #eef1f6;
+  --dark: #0e1b2e;
 
-  /* Stavy */
-  --green: #16a34a;
-  --green-ink: #15803d;
-  --green-tint: #dcfce7;
-  --green-line: #bbf7d0;
-  --red: #dc2626;
-  --red-ink: #b91c1c;
-  --red-tint: #fef2f2;
-  --red-line: #fecaca;
-  --amber-ink: #b45309;
-  --amber-tint: #fffbeb;
-  --amber-line: #fde68a;
+  /* Stavy (payment_connector) */
+  --green: #1f7a4d;
+  --green-ink: #1f7a4d;
+  --green-tint: #e7f4ed;
+  --green-line: #bfdccb;
+  --red: #b3213b;
+  --red-ink: #b3213b;
+  --red-tint: #fbe7ea;
+  --red-line: #f2c7ce;
+  --amber-ink: #9a6a1b;
+  --amber-tint: #fff4e3;
+  --amber-line: #f0dbb4;
 
-  --display: Geist, Inter, system-ui, sans-serif;
-  --body: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: 'Schibsted Grotesk', 'Public Sans', system-ui, sans-serif;
+  --body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'Cascadia Code', Menlo, Consolas, monospace;
 
   --radius-sm: 8px;
   --radius: 12px;
-  --shadow-xs: 0 1px 2px rgba(2, 6, 23, 0.05);
-  --shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.04), 0 1px 3px rgba(2, 6, 23, 0.06);
-  --shadow-md: 0 4px 16px -4px rgba(2, 6, 23, 0.10), 0 2px 4px rgba(2, 6, 23, 0.04);
-  --focus: 0 0 0 3px rgba(145, 71, 53, 0.18);
+  --shadow-xs: 0 1px 2px rgba(20, 38, 63, 0.05);
+  --shadow-sm: 0 1px 2px rgba(20, 38, 63, 0.04), 0 1px 3px rgba(20, 38, 63, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 38, 63, 0.10);
+  --focus: 0 0 0 3px rgba(20, 38, 63, 0.18);
 
   /* Spätná kompatibilita so starými názvami */
   --bg: var(--surface-alt);
@@ -323,7 +324,9 @@ h2 {
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  transition-property: color, background-color, border-color, box-shadow, transform, filter;
+  transition-timing-function: ease;
+  transition-duration: 150ms;
 }
 
 .btn:disabled {
@@ -336,8 +339,11 @@ h2 {
   box-shadow: var(--shadow-xs);
 }
 
+/* Plné tlačidlo — rozjasnenie + nadvihnutie + mäkký navy tieň (ako payment_connector) */
 .btn-primary:hover:not(:disabled) {
-  background: var(--brand-hover);
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(20, 38, 63, 0.28);
 }
 
 .btn-primary:disabled {
@@ -352,9 +358,11 @@ h2 {
   border-color: var(--line-strong);
 }
 
+/* Obrysové tlačidlo — jemné vyplnenie + nadvihnutie, bez tmavého okraja */
 .btn-secondary:hover:not(:disabled) {
-  background: var(--surface-alt);
-  border-color: var(--faint);
+  background: var(--slate-tint);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(20, 38, 63, 0.12);
 }
 
 .btn-secondary:disabled {
@@ -367,8 +375,9 @@ h2 {
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--slate-tint);
+  background: var(--surface-alt);
   color: var(--ink);
+  box-shadow: 0 2px 8px rgba(20, 38, 63, 0.1);
 }
 
 .btn-success,
@@ -465,7 +474,7 @@ h2 {
   height: 24px;
   border-radius: 999px;
   flex-shrink: 0;
-  background: var(--brand-tint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23914735' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20.5V5.5a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 14 5.5v15M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5M2.5 20.5h19M7.5 8h3M7.5 11.5h3M7.5 15h3'/%3E%3C/svg%3E") center / 14px no-repeat;
+  background: var(--brand-tint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314263F' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20.5V5.5a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 14 5.5v15M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5M2.5 20.5h19M7.5 8h3M7.5 11.5h3M7.5 15h3'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
 .company-pill:empty {
@@ -504,7 +513,7 @@ input[type="date"] {
   -webkit-appearance: none;
   padding-right: 2.25rem;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7686' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px;
@@ -653,7 +662,7 @@ input[type="checkbox"] {
   background: var(--surface);
   color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.08), 0 0 0 1px rgba(2, 6, 23, 0.04);
+  box-shadow: 0 1px 2px rgba(20, 38, 63, 0.08), 0 0 0 1px rgba(20, 38, 63, 0.04);
 }
 
 #filter-doc-type,
@@ -934,6 +943,9 @@ th input[type="checkbox"] {
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
+  filter: none;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(20, 38, 63, 0.25);
 }
 
 .invoices-table .btn-primary:disabled {
@@ -944,7 +956,7 @@ th input[type="checkbox"] {
 
 .invoices-table tr.row-paid,
 .invoices-table tr.row-paid:hover {
-  background: rgba(22, 163, 74, 0.05);
+  background: rgba(31, 122, 77, 0.05);
 }
 
 .invoices-table tr.row-paid td {
@@ -1029,21 +1041,21 @@ th input[type="checkbox"] {
   background-color: var(--red-tint);
   border-color: var(--red-line);
   color: var(--red-ink);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B91C1C' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B3213B' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E");
 }
 
 .result-box.success {
-  background-color: #f0fdf4;
+  background-color: #f3faf6;
   border-color: var(--green-line);
   color: var(--green-ink);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315803D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.75 2.75L16 10'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F7A4D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.75 2.75L16 10'/%3E%3C/svg%3E");
 }
 
 .result-box.warning {
   background-color: var(--amber-tint);
   border-color: var(--amber-line);
   color: var(--amber-ink);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20h19z'/%3E%3Cpath d='M12 10v4.5M12 17.5v.01'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239A6A1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20h19z'/%3E%3Cpath d='M12 10v4.5M12 17.5v.01'/%3E%3C/svg%3E");
 }
 
 /* Detail chyby z formatApiError (app.js) */
@@ -1103,12 +1115,12 @@ th input[type="checkbox"] {
   border-radius: var(--radius-sm);
   background: var(--surface);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
 .pagination button:hover:not(:disabled) {
   background: var(--surface-alt);
-  border-color: var(--faint);
+  box-shadow: 0 2px 8px rgba(20, 38, 63, 0.1);
 }
 
 .pagination button:disabled {
@@ -1169,8 +1181,8 @@ th input[type="checkbox"] {
   font-family: var(--mono);
   font-size: 0.75rem;
   line-height: 1.5;
-  background: var(--dark, #0f172a);
-  color: #cbd5e1;
+  background: var(--dark);
+  color: #d5dce5;
   border-radius: var(--radius-sm);
   padding: 0.875rem 1rem;
   margin: 0;
@@ -1431,12 +1443,13 @@ th input[type="checkbox"] {
   text-align: left;
   cursor: pointer;
   box-shadow: var(--shadow-xs);
-  transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
+/* Interaktívna karta — nadvihnutie + mäkký tieň, okraj len decentne stmavne */
 .btn-module:hover {
-  border-color: var(--brand-tint-line);
-  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+  box-shadow: 0 8px 24px rgba(20, 38, 63, 0.1);
   transform: translateY(-1px);
 }
 
@@ -1628,7 +1641,7 @@ th input[type="checkbox"] {
 
 .transfer-table tr.row-transferred,
 .transfer-table tr.row-transferred:hover {
-  background: rgba(22, 163, 74, 0.04);
+  background: rgba(31, 122, 77, 0.04);
 }
 
 .transfer-table tr.row-transferred .tr-partner-name {
@@ -1659,11 +1672,11 @@ th input[type="checkbox"] {
   gap: 0.5rem;
   padding: 0.75rem 0.5rem 0.75rem 2.5rem;
   border-radius: var(--radius);
-  background: var(--dark, #0f172a) no-repeat 0.875rem 0.875rem / 16px;
+  background: var(--dark) no-repeat 0.875rem 0.875rem / 16px;
   color: #fff;
   font-size: 0.875rem;
   line-height: 1.45;
-  box-shadow: 0 10px 30px -8px rgba(2, 6, 23, 0.45);
+  box-shadow: 0 10px 30px -8px rgba(20, 38, 63, 0.45);
   pointer-events: auto;
   animation: toast-in 0.2s ease-out;
 }
@@ -1897,7 +1910,7 @@ th input[type="checkbox"] {
   .transfer-table tbody tr.row-transferred:hover,
   #invoices-table tbody tr.row-paid,
   #invoices-table tbody tr.row-paid:hover {
-    background: #f0fdf4;
+    background: #f3faf6;
     border-color: var(--green-line);
   }
 
@@ -1910,7 +1923,7 @@ th input[type="checkbox"] {
 
   .transfer-table tbody tr.selected.row-transferred,
   #invoices-table tbody tr.selected.row-paid {
-    background: #f0fdf4;
+    background: #f3faf6;
     border-color: var(--green);
     box-shadow: 0 0 0 1px var(--green);
   }
@@ -2341,7 +2354,7 @@ th input[type="checkbox"] {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 24px 48px -12px rgba(2, 6, 23, 0.25), var(--shadow-md);
+  box-shadow: 0 24px 48px -12px rgba(20, 38, 63, 0.25), var(--shadow-md);
   overflow: visible;
 }
 
@@ -2350,7 +2363,7 @@ th input[type="checkbox"] {
 }
 
 .automation-dialog::backdrop {
-  background: rgba(2, 6, 23, 0.4);
+  background: rgba(20, 38, 63, 0.4);
   backdrop-filter: blur(2px);
 }
 
@@ -2470,7 +2483,7 @@ th input[type="checkbox"] {
     width: 16px;
     height: 16px;
     margin-top: -8px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7686' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
     transition: transform 0.15s;
   }
 
