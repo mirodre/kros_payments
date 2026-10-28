@@ -55,7 +55,7 @@ test('úhrada: filter partnera a dátumu, payload ako ručné tlačidlo, druhý 
       invoice(4, { sumOfPayments: 120 }),
     ],
     expenses: [{
-      id: 9, issueDate: '2026-10-06', documentNumber: 'D-77', partner: { address: { businessName: 'Acme Slovakia' } },
+      id: 9, issueDate: '2026-10-06', documentNumber: 'D-77', variableSymbol: '7700123', partner: { address: { businessName: 'Acme Slovakia' } },
       prices: { currency: 'EUR', documentPrices: { totalPriceInclVat: 50, sumForPayment: 50, sumOfPayments: 0 } },
     }],
   });
@@ -73,7 +73,8 @@ test('úhrada: filter partnera a dátumu, payload ako ručné tlačidlo, druhý 
   assert.equal(inv.accountId, 5);
   const exp = posted.find((p) => p.externalId === 'AUTO-EXP-9');
   assert.equal(exp.sumOfPayment, -50);
-  assert.equal(exp.paymentReference, 'D-77');
+  assert.equal(exp.variableSymbol, '7700123');
+  assert.equal(exp.paymentReference, undefined);
 
   // KROS ešte nestihol doklady označiť ako uhradené a watermark je vynulovaný (zmena pravidla)
   // → druhý beh ich vidí znova, ale nepošle.
@@ -86,6 +87,20 @@ test('úhrada: filter partnera a dátumu, payload ako ručné tlačidlo, druhý 
   const items = await repo.listItems(ctx.db, 'org-a', rule.id);
   assert.deepEqual(items.map((i) => i.status), ['sent', 'sent']);
   assert.ok(items.every((i) => i.requestId?.startsWith('req-')));
+});
+
+test('výdavok bez variableSymbol → platba bez VS aj referencie (číslo dokladu sa nepoužije)', async () => {
+  ctx.kros.setData({
+    expenses: [{
+      id: 10, issueDate: '2026-10-06', documentNumber: 'D-78', partner: { address: { businessName: 'Acme Slovakia' } },
+      prices: { currency: 'EUR', documentPrices: { totalPriceInclVat: 30, sumForPayment: 30, sumOfPayments: 0 } },
+    }],
+  });
+  const rule = await mkRule({ docTypes: 'expenses' });
+  await run(rule);
+  const exp = ctx.kros.data.payments.find((p) => p.externalId === 'AUTO-EXP-10');
+  assert.equal(exp.variableSymbol, '');
+  assert.equal(exp.paymentReference, undefined);
 });
 
 test('úhrada: docTypes=invoices nevolá výdavky; posiela LastModifiedTimestamp a IssueDateFrom', async () => {

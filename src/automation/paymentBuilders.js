@@ -18,7 +18,7 @@ export function getVariableSymbolAndReference(doc) {
   return { variableSymbol: raw, reference: undefined };
 }
 
-/** Výdavok → tvar dokladu ako faktúra (odchádzajúca platba = záporná suma). */
+/** Výdavok → tvar dokladu ako faktúra (odchádzajúca platba = záporná suma). VS len z variableSymbol, ako pri faktúrach. */
 export function normalizeExpense(exp) {
   const docPrices = exp?.prices?.documentPrices || {};
   const forPayment = Number(docPrices.sumForPayment ?? docPrices.totalPriceInclVat ?? 0);
@@ -26,7 +26,7 @@ export function normalizeExpense(exp) {
   return {
     ...exp,
     isExpense: true,
-    variableSymbol: exp.variableSymbol || exp.documentNumber || '',
+    variableSymbol: exp.variableSymbol || '',
     sumForPayment: -forPayment,
     sumOfPayments: -paid,
   };
